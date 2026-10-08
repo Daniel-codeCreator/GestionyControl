@@ -88,7 +88,7 @@ class Settings:
         return cls(
             db_host=os.getenv("DB_HOST", "localhost"),
             db_port=_int("DB_PORT", 1433),
-            db_name=os.getenv("DB_NAME", "UniversidadAsistenciaDB"),
+            db_name=os.getenv("DB_NAME", "PROYCPROGRA2"),
             db_user=os.getenv("DB_USER", "sa"),
             db_password=os.getenv("DB_PASSWORD", ""),
             db_driver=os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server"),
