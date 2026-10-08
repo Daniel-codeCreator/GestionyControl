@@ -2,17 +2,21 @@ services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     platform: ${SQLSERVER_PLATFORM:-linux/amd64}
+    container_name: sqlserver
 
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env.docker or the environment}
+      MSSQL_SA_PASSWORD: "Password123!"
       MSSQL_PID: Developer
+      TZ: America/Guatemala
 
     ports:
-      - "${MSSQL_PORT:-1433}:1433"
+      - "1400:1433"
 
     volumes:
       - gestion_control_sqlserver:/var/opt/mssql
+
+    restart: "no"
 
 volumes:
   gestion_control_sqlserver:
