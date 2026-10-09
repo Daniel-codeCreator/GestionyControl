@@ -1,13 +1,5 @@
 package Proyecto.universidad;
 
-<<<<<<< HEAD
-import Proyecto.universidad.view.Login;
-
-public class main {
-    public static void main(String[] args) {
-        Login login = new Login();
-        login.setVisible(true);
-=======
 import Proyecto.universidad.model.Usuario;
 import Proyecto.universidad.service.AuthService;
 import Proyecto.universidad.view.Login;
@@ -63,6 +55,5 @@ public class main {
 
             System.err.println("No fue posible verificar el usuario admin: " + e.getMessage());
         }
->>>>>>> be9d7ef (se agrega la facial-version)
     }
 }
