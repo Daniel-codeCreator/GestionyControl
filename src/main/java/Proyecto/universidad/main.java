@@ -22,14 +22,18 @@ public class main {
 
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            frame.pack();
+            // Tamaño fijado manualmente en 800x600 píxeles
+            frame.setSize(800, 600);
 
+            // Importante: setLocationRelativeTo siempre va DESPUÉS de setSize
             frame.setLocationRelativeTo(null);
 
             frame.setResizable(false);
 
             frame.setVisible(true);
         });
+
+
     }
 
     private static void asegurarUsuarioAdministrador() {

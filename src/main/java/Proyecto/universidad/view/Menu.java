@@ -1,6 +1,7 @@
 package Proyecto.universidad.view;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class Menu {
 
@@ -13,6 +14,10 @@ public class Menu {
     private JButton button6;
 
     public Menu() {
+
+        if (JpanenPrincipal != null) {
+            JpanenPrincipal.setPreferredSize(new Dimension(800, 600));
+        }
 
         button1.addActionListener(e -> {
             JOptionPane.showMessageDialog(JpanenPrincipal, "Botón 1 presionado");
