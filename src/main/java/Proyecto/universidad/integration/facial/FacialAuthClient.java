@@ -37,7 +37,7 @@ public class FacialAuthClient {
     }
 
     public FacialVerificationResult verify(int userId) {
-        String body = send("/face/verify", "POST", "{\"userId\":" + userId + "}", Duration.ofSeconds(30));
+            String body = send("/face/verify", "POST", "{\"userId\":" + userId + "}", Duration.ofSeconds(30));
         return new FacialVerificationResult(
                 booleanField(body, "success"),
                 booleanField(body, "matched"),

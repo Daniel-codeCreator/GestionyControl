@@ -13,11 +13,11 @@ from app.db import Database
 
 def find_user(username: str) -> dict[str, Any] | None:
     query = """
-        SELECT u.id_usuario, u.usuario, u.activo,
-               CASE WHEN p.id_perfil_facial IS NULL THEN 0 ELSE 1 END
+        SELECT u.IdUsuario, u.NombreUsuario, u.Estado,
+               CASE WHEN p.IdPerfilFacial IS NULL THEN 0 ELSE 1 END
         FROM Usuario AS u
-        LEFT JOIN PerfilFacial AS p ON p.id_usuario = u.id_usuario AND p.activo = 1
-        WHERE u.usuario = ?
+        LEFT JOIN PerfilFacial AS p ON p.IdUsuario = u.IdUsuario AND p.Activo = 1
+        WHERE u.NombreUsuario = ?
     """
     database = Database(settings)
     with database.connect() as connection:
@@ -27,7 +27,7 @@ def find_user(username: str) -> dict[str, Any] | None:
     return {
         "username": str(row[1]),
         "userId": int(row[0]),
-        "active": bool(row[2]),
+        "active": str(row[2]).upper() == "ACTIVO",
         "facialProfile": bool(row[3]),
     }
 
