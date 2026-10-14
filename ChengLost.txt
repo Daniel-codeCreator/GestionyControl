@@ -4,9 +4,13 @@ Proyecto Final Progra 2
 2026-10-04
 -Creación de la base de datos y las tablas
 -creación primera pantalla e LOGIn
+
 2026-10-11
 --se hace la funcionalidad de que que sirva usuario + clave + facial = acceso correcto
 
-2026-13-10
+2026-10-13
 --se agregan los servicios de Laboratorio
 --se agregan los servicios de TipoEquipos
+
+2026-10-14
+--se arregla BUG de TipoEquipos que no mostraba los datos en las celdas del Forms
