@@ -33,8 +33,6 @@ public class Login extends JFrame {
         setLocationRelativeTo(null);
         setResizable(false);
 
-        // Si usas el GUI Designer de IntelliJ, no reinstancies panelPrincipal;
-        // pero asignamos fallback/panel en caso de instanciación directa.
         if (panelPrincipal == null) {
             panelPrincipal = new JPanel(new GridBagLayout());
             GridBagConstraints gbc = new GridBagConstraints();
@@ -78,7 +76,7 @@ public class Login extends JFrame {
 
         setContentPane(panelPrincipal);
 
-        // Asignación de Listeners de los componentes
+        // Asignación de Listeners
         if (btnIngresar != null) {
             btnIngresar.addActionListener(e -> ingresar());
         }
@@ -132,6 +130,7 @@ public class Login extends JFrame {
                     LoginOutcome outcome = get();
 
                     if (outcome.credencialesInvalidas()) {
+                        authService.registrarAuditoriaLoginFallido(null, strUsuario, "Usuario/contraseña incorrectos o usuario inactivo");
                         mostrarError("Usuario o contraseña incorrectos, o usuario inactivo.");
                         limpiarSeleccionPassword();
 
@@ -139,19 +138,27 @@ public class Login extends JFrame {
                         String msg = (outcome.facial() != null && outcome.facial().message() != null)
                                 ? outcome.facial().message()
                                 : "Verificación facial no coincidente.";
+
+                        authService.registrarAuditoriaLoginFallido(outcome.usuario().getIdUsuario(), strUsuario, "Fallo biométrico: " + msg);
                         mostrarError(msg);
                         limpiarSeleccionPassword();
 
                     } else {
+                        // Éxito completo (RN-18)
+                        authService.registrarAuditoriaLoginExitoso(outcome.usuario());
                         abrirMenu();
                     }
 
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    authService.registrarAuditoriaLoginFallido(null, strUsuario, "Proceso de verificación interrumpido");
                     mostrarError("La verificación facial fue interrumpida.");
 
                 } catch (ExecutionException e) {
                     Throwable cause = e.getCause();
+                    String errorMsg = cause instanceof FacialClientException ? cause.getMessage() : "Error en el cliente facial";
+
+                    authService.registrarAuditoriaLoginFallido(null, strUsuario, "Excepción de login: " + errorMsg);
 
                     if (cause instanceof FacialClientException facialError) {
                         mostrarError(facialError.getMessage());
@@ -189,7 +196,7 @@ public class Login extends JFrame {
         frameMenu.setResizable(false);
         frameMenu.setVisible(true);
 
-        this.dispose(); // Cierra esta ventana de Login
+        this.dispose(); // Cierra la ventana de Login
     }
 
     private void mostrarError(String strMensaje) {
