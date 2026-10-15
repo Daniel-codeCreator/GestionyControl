@@ -62,8 +62,8 @@ public class Menu extends JFrame {
     }
 
     private void abrirEquipos() {
-        // Formulario para la gestión de Equipos
-        JOptionPane.showMessageDialog(this, "Módulo de Equipos.");
+        EquiposView equiView = new EquiposView();
+        equiView.setVisible(true);
     }
 
     public JPanel getJpanenPrincipal() {
