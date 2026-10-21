@@ -105,4 +105,8 @@ public class Usuario {
     public void setFechaCreacion(LocalDateTime fechaCreacion) {
         this.fechaCreacion = fechaCreacion;
     }
+
+    public String getUsername() {
+        return this.strUsuario; // O return this.strUsername; según como esté declarada la variable interna
+    }
 }

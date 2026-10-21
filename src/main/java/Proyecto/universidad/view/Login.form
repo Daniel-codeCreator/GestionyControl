@@ -6,6 +6,9 @@
       <xy x="20" y="19" width="694" height="435"/>
     </constraints>
     <properties/>
+    <clientProperties>
+      <html.disable class="java.lang.Boolean" value="false"/>
+    </clientProperties>
     <border type="none"/>
     <children>
       <component id="f975b" class="javax.swing.JLabel">
@@ -16,14 +19,6 @@
           <font name="Consolas" size="20" style="1"/>
           <text value="Sistema de Gestion y Control"/>
         </properties>
-      </component>
-      <component id="b572d" class="javax.swing.JTextField" binding="txtPassword">
-        <constraints>
-          <grid row="4" column="2" row-span="1" col-span="2" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
-            <preferred-size width="150" height="-1"/>
-          </grid>
-        </constraints>
-        <properties/>
       </component>
       <component id="f5d2b" class="javax.swing.JLabel">
         <constraints>
@@ -75,6 +70,14 @@
           <font size="18" style="0"/>
           <text value="Inicio de sesion"/>
         </properties>
+      </component>
+      <component id="8f350" class="javax.swing.JPasswordField" binding="passwordField1" default-binding="true">
+        <constraints>
+          <grid row="4" column="2" row-span="1" col-span="2" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+            <preferred-size width="150" height="-1"/>
+          </grid>
+        </constraints>
+        <properties/>
       </component>
     </children>
   </grid>

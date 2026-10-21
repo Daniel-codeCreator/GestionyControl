@@ -1,13 +1,5 @@
 package Proyecto.universidad;
 
-<<<<<<< HEAD
-import Proyecto.universidad.view.Login;
-
-public class main {
-    public static void main(String[] args) {
-        Login login = new Login();
-        login.setVisible(true);
-=======
 import Proyecto.universidad.model.Usuario;
 import Proyecto.universidad.service.AuthService;
 import Proyecto.universidad.view.Login;
@@ -30,14 +22,18 @@ public class main {
 
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            frame.pack();
+            // Tamaño fijado manualmente en 800x600 píxeles
+            frame.setSize(800, 600);
 
+            // Importante: setLocationRelativeTo siempre va DESPUÉS de setSize
             frame.setLocationRelativeTo(null);
 
             frame.setResizable(false);
 
             frame.setVisible(true);
         });
+
+
     }
 
     private static void asegurarUsuarioAdministrador() {
@@ -63,6 +59,5 @@ public class main {
 
             System.err.println("No fue posible verificar el usuario admin: " + e.getMessage());
         }
->>>>>>> be9d7ef (se agrega la facial-version)
     }
 }

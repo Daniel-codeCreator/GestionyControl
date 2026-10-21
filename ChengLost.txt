@@ -1,0 +1,22 @@
+Control de Cambios
+Proyecto Final Progra 2
+
+2026-10-04
+-Creación de la base de datos y las tablas
+-creación primera pantalla e LOGIn
+
+2026-10-11
+--se hace la funcionalidad de que que sirva usuario + clave + facial = acceso correcto
+
+2026-13-10
+--se agregan los servicios de Laboratorio
+--se agregan los servicios de TipoEquipos
+
+2026-14-10
+--se aregla BUG en Laboratorio por que no mostraba los datos de los laboratorios que estan en la tabla
+--se agrega el servicio de Equipos donde se pueden registrar el tipo de equuipos
+--se hace una mejora en el FacialAuthClient donde no es necesario ejecutar en el powershell el comando
+  para habilitar el servicio de camara de python en el reconocimiento facial, la funcion se llama asegurarServicioPython
+
+
+  

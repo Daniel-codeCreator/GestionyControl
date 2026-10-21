@@ -2,41 +2,68 @@ package Proyecto.universidad.view;
 
 import javax.swing.*;
 
-public class Menu {
+public class Menu extends JFrame {
 
-    private JPanel JpanenPrincipal;
-    private JButton button1;
-    private JButton button2;
-    private JButton button3;
-    private JButton button4;
-    private JButton button5;
-    private JButton button6;
+    private JPanel JpanenPrincipal; // Mismo nombre que tu Form
+    private JButton btnLaboratorios;
+    private JButton btnTiposEquipo;
+    private JButton btnEquipos;
+    private JButton btnPrestamos;
+    private JButton btnMantenimiento;
+    private JButton btnCrearUsuario;
 
     public Menu() {
+        setTitle("Sistema de Gestión y Control - Menú Principal");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(800, 600);
+        setLocationRelativeTo(null);
+        setResizable(false);
 
-        button1.addActionListener(e -> {
-            JOptionPane.showMessageDialog(JpanenPrincipal, "Botón 1 presionado");
-        });
+        if (JpanenPrincipal != null) {
+            setContentPane(JpanenPrincipal);
+        }
 
-        button2.addActionListener(e -> {
-            JOptionPane.showMessageDialog(JpanenPrincipal, "Botón 2 presionado");
-        });
+        // Asignación de Listeners para cada módulo
+        if (btnLaboratorios != null) {
+            btnLaboratorios.addActionListener(e -> abrirLaboratorios());
+        }
 
-        button3.addActionListener(e -> {
-            JOptionPane.showMessageDialog(JpanenPrincipal, "Botón 3 presionado");
-        });
+        if (btnTiposEquipo != null) {
+            btnTiposEquipo.addActionListener(e -> abrirTiposEquipo());
+        }
 
-        button4.addActionListener(e -> {
-            JOptionPane.showMessageDialog(JpanenPrincipal, "Botón 4 presionado");
-        });
+        if (btnEquipos != null) {
+            btnEquipos.addActionListener(e -> abrirEquipos());
+        }
 
-        button5.addActionListener(e -> {
-            JOptionPane.showMessageDialog(JpanenPrincipal, "Botón 5 presionado");
-        });
+        if (btnPrestamos != null) {
+            btnPrestamos.addActionListener(e -> JOptionPane.showMessageDialog(this, "Módulo de Préstamos en construcción."));
+        }
 
-        button6.addActionListener(e -> {
-            JOptionPane.showMessageDialog(JpanenPrincipal, "Botón 6 presionado");
-        });
+        if (btnMantenimiento != null) {
+            btnMantenimiento.addActionListener(e -> JOptionPane.showMessageDialog(this, "Módulo de Mantenimiento en construcción."));
+        }
+
+        if (btnCrearUsuario != null) {
+            btnCrearUsuario.addActionListener(e -> JOptionPane.showMessageDialog(this, "Módulo de Usuarios en construcción."));
+        }
+    }
+
+    private void abrirLaboratorios() {
+        // Formulario que crearemos a continuación para el CRUD de Laboratorios
+        LaboratorioView labView = new LaboratorioView();
+        labView.setVisible(true);
+    }
+
+    private void abrirTiposEquipo() {
+       TipoEquipoView tipoView = new TipoEquipoView();
+       tipoView.setVisible(true);
+
+    }
+
+    private void abrirEquipos() {
+        EquiposView equiView = new EquiposView();
+        equiView.setVisible(true);
     }
 
     public JPanel getJpanenPrincipal() {

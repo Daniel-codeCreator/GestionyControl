@@ -1,4 +1,9 @@
 package Proyecto.universidad.enums;
 
-public class EstadoEquipo {
+public enum EstadoEquipo {
+    DISPONIBLE,
+    PRESTADO,
+    MANTENIMIENTO,
+    BAJA,
+    DANADO
 }
