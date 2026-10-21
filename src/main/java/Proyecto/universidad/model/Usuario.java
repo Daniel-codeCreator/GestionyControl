@@ -109,4 +109,8 @@ public class Usuario {
     public String getUsername() {
         return this.strUsuario; // O return this.strUsername; según como esté declarada la variable interna
     }
+    @Override
+    public String toString() {
+        return this.strNombre + " " + (this.strApellido != null ? this.strApellido : "") + " (" + this.strUsuario + ")";
+    }
 }

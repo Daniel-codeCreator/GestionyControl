@@ -109,4 +109,8 @@ public class Equipo {
     public void setStrNombreLaboratorio(String strNombreLaboratorio) {
         this.strNombreLaboratorio = strNombreLaboratorio;
     }
+    @Override
+    public String toString() {
+        return this.getStrNombre() + " - " + this.getStrCodigo();
+    }
 }

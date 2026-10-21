@@ -37,7 +37,7 @@ public class Menu extends JFrame {
         }
 
         if (btnPrestamos != null) {
-            btnPrestamos.addActionListener(e -> JOptionPane.showMessageDialog(this, "Módulo de Préstamos en construcción."));
+            btnPrestamos.addActionListener(e -> abrirPrestamos());
         }
 
         if (btnMantenimiento != null) {
@@ -64,6 +64,11 @@ public class Menu extends JFrame {
     private void abrirEquipos() {
         EquiposView equiView = new EquiposView();
         equiView.setVisible(true);
+    }
+
+    private void abrirPrestamos() {
+        PrestamoView prestamoView = new PrestamoView();
+        prestamoView.setVisible(true);
     }
 
     public JPanel getJpanenPrincipal() {
