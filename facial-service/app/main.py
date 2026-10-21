@@ -4,6 +4,7 @@ import logging
 import threading
 from contextlib import asynccontextmanager
 
+import pyodbc
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
@@ -62,6 +63,20 @@ async def facial_error_handler(_, exc: FacialServiceError):
         status_code=exc.status_code,
         content={"detail": exc.message, "code": exc.code},
         headers={"X-Facial-Code": exc.code},
+    )
+
+
+@app.exception_handler(pyodbc.Error)
+async def database_error_handler(_, exc: pyodbc.Error):
+    """Falla limpia cuando SQL Server o el driver ODBC no están disponibles."""
+    logger.error("SQL Server/ODBC no disponible: %s", exc)
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "Base de datos no disponible (SQL Server/ODBC). Verifique el driver ODBC 18 y la conexión.",
+            "code": "BD_NO_DISPONIBLE",
+        },
+        headers={"X-Facial-Code": "BD_NO_DISPONIBLE"},
     )
 
 

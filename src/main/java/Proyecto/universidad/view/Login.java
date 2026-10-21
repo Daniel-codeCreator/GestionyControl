@@ -17,6 +17,7 @@ public class Login extends JFrame {
     private JPasswordField passwordField1; // Mismo nombre asignado en Login.form
     private JButton btnIngresar;
     private JButton btnSalir;
+    private JButton btnCrearCuenta;
 
     private final AuthService authService;
     private final FacialAuthClient facialAuthClient;
@@ -83,9 +84,20 @@ public class Login extends JFrame {
         if (btnSalir != null) {
             btnSalir.addActionListener(e -> System.exit(0));
         }
+        if (btnCrearCuenta != null) {
+            btnCrearCuenta.addActionListener(e -> abrirCreacionUsuario());
+        }
         if (passwordField1 != null) {
             passwordField1.addActionListener(e -> ingresar());
         }
+    }
+
+    /**
+     * Abre la vista para crear una cuenta nueva desde el formulario de Login.
+     */
+    private void abrirCreacionUsuario() {
+        CrearUsuario vistaCreacion = new CrearUsuario();
+        vistaCreacion.setVisible(true);
     }
 
     private void ingresar() {

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="bpmstudio-bpm-inspector-state">
+    <option name="statesByFile">
+      <map>
+        <entry key="$PROJECT_DIR$/src/main/java/Proyecto/universidad/view/LaboratorioView.form">
+          <value>
+            <FileInspectorState>
+              <option name="statesByElementId">
+                <map>
+                  <entry key="Form_065dyds">
+                    <value>
+                      <ExpandedItems>
+                        <option name="items">
+                          <option value="General" />
+                        </option>
+                      </ExpandedItems>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </FileInspectorState>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/src/main/java/Proyecto/universidad/view/Menu.form">
+          <value>
+            <FileInspectorState>
+              <option name="statesByElementId">
+                <map>
+                  <entry key="Form_065dyds">
+                    <value>
+                      <ExpandedItems>
+                        <option name="items">
+                          <option value="General" />
+                        </option>
+                      </ExpandedItems>
+                    </value>
+                  </entry>
+                  <entry key="Form_150u9dl">
+                    <value>
+                      <ExpandedItems>
+                        <option name="items">
+                          <option value="General" />
+                        </option>
+                      </ExpandedItems>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </FileInspectorState>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

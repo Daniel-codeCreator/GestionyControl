@@ -3,7 +3,7 @@
   <grid id="27dc6" binding="panelPrincipal" layout-manager="GridLayoutManager" row-count="6" column-count="4" same-size-horizontally="true" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="25" left="25" bottom="25" right="25"/>
     <constraints>
-      <xy x="20" y="19" width="694" height="435"/>
+      <xy x="20" y="19" width="700" height="435"/>
     </constraints>
     <properties/>
     <clientProperties>
@@ -44,14 +44,6 @@
           <text value="Salir"/>
         </properties>
       </component>
-      <component id="8636b" class="javax.swing.JButton" binding="btnIngresar">
-        <constraints>
-          <grid row="5" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
-        </constraints>
-        <properties>
-          <text value="Ingresar"/>
-        </properties>
-      </component>
       <component id="5c143" class="javax.swing.JTextField" binding="txtUser">
         <constraints>
           <grid row="2" column="2" row-span="2" col-span="2" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
@@ -78,6 +70,22 @@
           </grid>
         </constraints>
         <properties/>
+      </component>
+      <component id="c9a11" class="javax.swing.JButton" binding="btnCrearCuenta">
+        <constraints>
+          <grid row="5" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Crear nueva cuenta"/>
+        </properties>
+      </component>
+      <component id="8636b" class="javax.swing.JButton" binding="btnIngresar">
+        <constraints>
+          <grid row="5" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Ingresar"/>
+        </properties>
       </component>
     </children>
   </grid>

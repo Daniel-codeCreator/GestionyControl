@@ -2,6 +2,8 @@ package Proyecto.universidad.integration.facial;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -34,54 +36,102 @@ public class FacialAuthClient {
     }
 
     public FacialAuthClient(String baseUrl, HttpClient httpClient) {
-        asegurarServicioPython(); // Inicia el microservicio en Python automáticamente
         this.baseUrl = baseUrl.replaceAll("/+$", "");
         this.httpClient = httpClient;
+        asegurarServicioPython(this.baseUrl); // Inicia el microservicio en Python automáticamente
     }
 
     /**
-     funcion que levanta automaticamente servidor de Python si no está activo.
+     levanta el servidor Python si no responde en la URL indicada y espera
+     a que esté listo (el arranque real de uvicorn tarda varios segundos).
      */
-    public static synchronized void asegurarServicioPython() {
-        if (pythonProcess != null && pythonProcess.isAlive()) {
+    public static synchronized void asegurarServicioPython(String strUrlBase) {
+        if (servicioResponde(strUrlBase, 300)) {
+            // Ya hay un servicio escuchando (lo inició otro proceso).
             return;
         }
 
-        try {
-            File directorioFacial = new File("facial-service");
-            File ejecutablePython = new File(directorioFacial, ".venv/Scripts/python.exe");
+        if (pythonProcess == null || !pythonProcess.isAlive()) {
+            try {
+                File directorioFacial = new File("facial-service");
+                File ejecutablePython = new File(directorioFacial, ".venv/Scripts/python.exe");
 
-            if (!ejecutablePython.exists()) {
-                directorioFacial = new File(".");
-                ejecutablePython = new File(".venv/Scripts/python.exe");
+                if (!ejecutablePython.exists()) {
+                    directorioFacial = new File(".");
+                    ejecutablePython = new File(".venv/Scripts/python.exe");
+                }
+
+                if (ejecutablePython.exists()) {
+                    ProcessBuilder pb = new ProcessBuilder(
+                            ejecutablePython.getAbsolutePath(),
+                            "-m",
+                            "scripts.start"
+                    );
+                    pb.directory(directorioFacial);
+                    pb.inheritIO();
+
+                    pythonProcess = pb.start();
+                    System.out.println(">>> Microservicio Facial en Python iniciado automáticamente.");
+
+                    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                        if (pythonProcess != null && pythonProcess.isAlive()) {
+                            pythonProcess.destroy();
+                            System.out.println(">>> Microservicio Facial detenido.");
+                        }
+                    }));
+                } else {
+                    System.err.println("No se encontró el ejecutable de Python en: "
+                            + ejecutablePython.getAbsolutePath()
+                            + ". Inicie el servicio manualmente desde facial-service.");
+                    return;
+                }
+
+            } catch (IOException e) {
+                System.err.println("Error al iniciar el microservicio de Python automáticamente: " + e.getMessage());
+                return;
             }
+        }
 
-            if (ejecutablePython.exists()) {
-                ProcessBuilder pb = new ProcessBuilder(
-                        ejecutablePython.getAbsolutePath(),
-                        "-m",
-                        "scripts.start"
-                );
-                pb.directory(directorioFacial);
-                pb.inheritIO();
+        esperarServicio(strUrlBase, pythonProcess, 45_000);
+    }
 
-                pythonProcess = pb.start();
-                System.out.println(">>> Microservicio Facial en Python iniciado automáticamente.");
+    private static void esperarServicio(String strUrlBase, Process proceso, long maximoMs) {
+        long limite = System.currentTimeMillis() + maximoMs;
 
-                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                    if (pythonProcess != null && pythonProcess.isAlive()) {
-                        pythonProcess.destroy();
-                        System.out.println(">>> Microservicio Facial detenido.");
-                    }
-                }));
-
-                Thread.sleep(2000);
-            } else {
-                System.err.println("No se encontró el ejecutable de Python en: " + ejecutablePython.getAbsolutePath());
+        while (System.currentTimeMillis() < limite) {
+            if (proceso == null || !proceso.isAlive()) {
+                System.err.println(">>> El proceso del servicio facial terminó antes de responder.");
+                return;
             }
+            if (servicioResponde(strUrlBase, 300)) {
+                System.out.println(">>> Microservicio Facial listo en " + strUrlBase);
+                return;
+            }
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
 
-        } catch (IOException | InterruptedException e) {
-            System.err.println("Error al iniciar el microservicio de Python automáticamente: " + e.getMessage());
+        System.err.println(">>> El servicio facial no respondió en " + maximoMs + " ms.");
+    }
+
+    private static boolean servicioResponde(String strUrlBase, int timeoutMs) {
+        URI uri = URI.create(strUrlBase);
+        String host = uri.getHost();
+        int puerto = uri.getPort() > 0 ? uri.getPort() : ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80);
+
+        if (host == null) {
+            return false;
+        }
+
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, puerto), timeoutMs);
+            return true;
+        } catch (IOException e) {
+            return false;
         }
     }
 
