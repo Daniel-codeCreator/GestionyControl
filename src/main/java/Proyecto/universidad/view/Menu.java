@@ -1,10 +1,12 @@
 package Proyecto.universidad.view;
 
+import Proyecto.universidad.model.Usuario;
+
 import javax.swing.*;
 
 public class Menu extends JFrame {
 
-    private JPanel JpanenPrincipal; // Mismo nombre que tu Form
+    private JPanel JpanenPrincipal;
     private JButton btnLaboratorios;
     private JButton btnTiposEquipo;
     private JButton btnEquipos;
@@ -12,7 +14,18 @@ public class Menu extends JFrame {
     private JButton btnMantenimiento;
     private JButton btnCrearUsuario;
 
+    // Atributo para guardar la sesión del usuario autenticado
+    private Usuario usuarioLogueado;
+
+    // Constructor sin parámetros (por compatibilidad)
     public Menu() {
+        this(null);
+    }
+
+    // Constructor principal que recibe al usuario que inició sesión
+    public Menu(Usuario usuario) {
+        this.usuarioLogueado = usuario;
+
         setTitle("Sistema de Gestión y Control - Menú Principal");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
@@ -45,20 +58,18 @@ public class Menu extends JFrame {
         }
 
         if (btnCrearUsuario != null) {
-            btnCrearUsuario.addActionListener(e -> JOptionPane.showMessageDialog(this, "Módulo de Usuarios en construcción."));
+            btnCrearUsuario.addActionListener(e -> abrirPantallaCrearUsuario());
         }
     }
 
     private void abrirLaboratorios() {
-        // Formulario que crearemos a continuación para el CRUD de Laboratorios
         LaboratorioView labView = new LaboratorioView();
         labView.setVisible(true);
     }
 
     private void abrirTiposEquipo() {
-       TipoEquipoView tipoView = new TipoEquipoView();
-       tipoView.setVisible(true);
-
+        TipoEquipoView tipoView = new TipoEquipoView();
+        tipoView.setVisible(true);
     }
 
     private void abrirEquipos() {
@@ -69,6 +80,21 @@ public class Menu extends JFrame {
     private void abrirPrestamos() {
         PrestamoView prestamoView = new PrestamoView();
         prestamoView.setVisible(true);
+    }
+
+    private void abrirPantallaCrearUsuario() {
+        // Valida que el usuario exista y que su IdRol sea 1 (ADMIN)
+        if (usuarioLogueado != null && usuarioLogueado.getIntRol() == 1) {
+            UsuarioView usuarioView = new UsuarioView();
+            usuarioView.setVisible(true);
+        } else {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Acceso Denegado para tu rol.",
+                    "Solo Admin",
+                    JOptionPane.WARNING_MESSAGE
+            );
+        }
     }
 
     public JPanel getJpanenPrincipal() {

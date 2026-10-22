@@ -2,6 +2,7 @@ package Proyecto.universidad.view;
 
 import Proyecto.universidad.integration.facial.FacialAuthClient;
 import Proyecto.universidad.integration.facial.FacialClientException;
+import Proyecto.universidad.integration.facial.FacialEnrollmentResult;
 import Proyecto.universidad.integration.facial.FacialVerificationResult;
 import Proyecto.universidad.model.Usuario;
 import Proyecto.universidad.service.AuthService;
@@ -14,9 +15,10 @@ public class Login extends JFrame {
 
     private JPanel panelPrincipal;
     private JTextField txtUser;
-    private JPasswordField passwordField1; // Mismo nombre asignado en Login.form
+    private JPasswordField passwordField1;
     private JButton btnIngresar;
     private JButton btnSalir;
+    private JButton btnRegistrarRostro;
 
     private final AuthService authService;
     private final FacialAuthClient facialAuthClient;
@@ -26,10 +28,9 @@ public class Login extends JFrame {
         authService = new AuthService();
         facialAuthClient = new FacialAuthClient();
 
-        // Configuración de la ventana principal
         setTitle("Inicio de Sesión");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 600); // Tamaño estándar de 800x600
+        setSize(800, 600);
         setLocationRelativeTo(null);
         setResizable(false);
 
@@ -64,8 +65,10 @@ public class Login extends JFrame {
 
             JPanel panelBotones = new JPanel(new FlowLayout());
             btnIngresar = new JButton("Ingresar");
+            btnRegistrarRostro = new JButton("Registrar Rostro");
             btnSalir = new JButton("Salir");
             panelBotones.add(btnIngresar);
+            panelBotones.add(btnRegistrarRostro);
             panelBotones.add(btnSalir);
 
             gbc.gridx = 0;
@@ -76,9 +79,11 @@ public class Login extends JFrame {
 
         setContentPane(panelPrincipal);
 
-        // Asignación de Listeners
         if (btnIngresar != null) {
             btnIngresar.addActionListener(e -> ingresar());
+        }
+        if (btnRegistrarRostro != null) {
+            btnRegistrarRostro.addActionListener(e -> registrarRostro());
         }
         if (btnSalir != null) {
             btnSalir.addActionListener(e -> System.exit(0));
@@ -115,11 +120,9 @@ public class Login extends JFrame {
 
             @Override
             protected LoginOutcome doInBackground() {
-                // Paso 1: Usuario ACTIVO + contraseña (RN-01)
                 Usuario usuario = authService.autenticar(strUsuario, strPassword);
                 if (usuario == null) return LoginOutcome.sinCredenciales();
 
-                // Paso 2: Rostro (RN-02). Python recibe solo el ID del usuario
                 FacialVerificationResult facial = facialAuthClient.verify(usuario.getIdUsuario());
                 return new LoginOutcome(usuario, facial);
             }
@@ -144,9 +147,9 @@ public class Login extends JFrame {
                         limpiarSeleccionPassword();
 
                     } else {
-                        // Éxito completo (RN-18)
                         authService.registrarAuditoriaLoginExitoso(outcome.usuario());
-                        abrirMenu();
+                        // Pasamos la sesión del usuario al menú
+                        abrirMenu(outcome.usuario());
                     }
 
                 } catch (InterruptedException e) {
@@ -178,6 +181,53 @@ public class Login extends JFrame {
         }.execute();
     }
 
+    private void registrarRostro() {
+        String usuario = txtUser != null ? txtUser.getText().trim() : "";
+        String password = passwordField1 != null ? new String(passwordField1.getPassword()).trim() : "";
+
+        if (usuario.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Por favor, ingrese su usuario y contraseña para vincular su rostro.",
+                    "Atención", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            // 1. Validar credenciales usando AuthService
+            Usuario u = authService.autenticar(usuario, password);
+            if (u == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Credenciales incorrectas. No se puede registrar el rostro.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // 2. Notificar e iniciar captura facial
+            JOptionPane.showMessageDialog(this,
+                    "Se abrirá la cámara. Por favor mire hacia el frente para capturar su rostro.",
+                    "Reconocimiento Facial", JOptionPane.INFORMATION_MESSAGE);
+
+            // 3. Evaluar el resultado de tipo FacialEnrollmentResult
+            FacialEnrollmentResult resultado = facialAuthClient.enroll(u.getIdUsuario(), true);
+
+            if (resultado != null && resultado.success()) {
+                JOptionPane.showMessageDialog(this,
+                        "¡Rostro registrado exitosamente! Ya puede iniciar sesión usando reconocimiento facial.",
+                        "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                String msg = (resultado != null && resultado.message() != null) ? resultado.message() : "Error en la captura.";
+                JOptionPane.showMessageDialog(this,
+                        "No se pudo completar el registro facial: " + msg,
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                    "Error al conectar con el servicio facial: " + e.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void limpiarSeleccionPassword() {
         if (passwordField1 != null) {
             passwordField1.selectAll();
@@ -185,8 +235,9 @@ public class Login extends JFrame {
         }
     }
 
-    private void abrirMenu() {
-        Menu menu = new Menu();
+    private void abrirMenu(Usuario usuarioAutenticado) {
+        // Inicializa el Menú pasando la información del usuario autenticado
+        Menu menu = new Menu(usuarioAutenticado);
         JFrame frameMenu = new JFrame("Sistema de Gestión y Control - Menú Principal");
 
         frameMenu.setContentPane(menu.getJpanenPrincipal());
@@ -196,7 +247,7 @@ public class Login extends JFrame {
         frameMenu.setResizable(false);
         frameMenu.setVisible(true);
 
-        this.dispose(); // Cierra la ventana de Login
+        this.dispose();
     }
 
     private void mostrarError(String strMensaje) {

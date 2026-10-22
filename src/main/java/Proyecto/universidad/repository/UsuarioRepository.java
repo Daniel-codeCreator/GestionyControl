@@ -3,6 +3,7 @@ package Proyecto.universidad.repository;
 import Proyecto.universidad.Config.connection;
 import Proyecto.universidad.model.Usuario;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -63,12 +64,12 @@ public class UsuarioRepository {
      */
     public Usuario buscarPorUsuario(String strUsuario) {
         String strSql = """
-                SELECT
-                    IdUsuario, Nombre, Apellido, NombreUsuario,
-                    Contrasena, Correo, IdRol, Estado, FechaCreacion
-                FROM Usuario
-                WHERE NombreUsuario = ?
-                """;
+            SELECT
+                IdUsuario, Nombre, Apellido, NombreUsuario,
+                Contrasena, Correo, IdRol, Estado, FechaCreacion
+            FROM Usuario
+            WHERE UPPER(NombreUsuario) = UPPER(?) AND UPPER(Estado) = 'ACTIVO'
+            """;
 
         try (
                 Connection conn = connection.getConnection();
@@ -165,4 +166,43 @@ public class UsuarioRepository {
 
         return null;
     }
+    public Usuario crearUsuarioConSP(String strNombre, String strApellido, String strUsuario,
+                                     String strPassword, String strCorreo, int intRol)
+    {
+        String sqlCallable = "{CALL CrearUsuario(?, ?, ?, ?, ?, ?)}";
+
+        try (
+                Connection conn = connection.getConnection();
+                CallableStatement stmt = conn.prepareCall(sqlCallable)
+        ) {
+            stmt.setString(1, strNombre);
+            stmt.setString(2, strApellido);
+            stmt.setString(3, strUsuario);
+            stmt.setString(4, strPassword);
+            stmt.setString(5, strCorreo);
+            stmt.setInt(6, intRol);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Usuario usuario = new Usuario();
+                    usuario.setIdUsuario(rs.getInt("IdUsuario"));
+                    usuario.setStrNombre(strNombre);
+                    usuario.setStrApellido(strApellido);
+                    usuario.setStrUsuario(strUsuario);
+                    usuario.setStrPassword(strPassword);
+                    usuario.setStrCorreo(strCorreo);
+                    usuario.setIntRol(intRol);
+                    usuario.setStrEstado("ACTIVO");
+
+                    return usuario;
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+
+        return null;
+    }
+
 }
