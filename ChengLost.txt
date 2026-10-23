@@ -19,4 +19,11 @@ Proyecto Final Progra 2
   para habilitar el servicio de camara de python en el reconocimiento facial, la funcion se llama asegurarServicioPython
 
 
-  
+2026-10-20
+--se agrega el servicio de Prestamo
+**nota queda arreglar el funcionamiento devolucion y el usuario que pide prestado ya que siempre lo guarda con admin
+**aunque se seoeccione otro usuario
+
+2026-10-21
+--se hace la funcionalidad de crearUsuario via SP
+--se hace la mejora donde podemos iniciar sesion con diferentes usuarios/rostros

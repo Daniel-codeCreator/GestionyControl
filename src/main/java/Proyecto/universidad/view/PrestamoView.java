@@ -1,6 +1,7 @@
 package Proyecto.universidad.view;
 
 import Proyecto.universidad.enums.EstadoEquipo;
+import Proyecto.universidad.model.DetallePrestamo;
 import Proyecto.universidad.model.Equipo;
 import Proyecto.universidad.model.Prestamo;
 import Proyecto.universidad.model.Usuario;
@@ -10,17 +11,20 @@ import Proyecto.universidad.service.UsuarioService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.awt.*;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
 public class PrestamoView extends JFrame {
 
+    // Componentes mapeados desde PrestamoView.form
     private JPanel panelPrincipal;
     private JComboBox<Usuario> cmbUsuario;
     private JComboBox<Equipo> cmbEquipo;
-    private JSpinner spnFechaDevolucion; // Componente JSpinner enlazado con el .form
+    private JSpinner spnFechaDevolucion;
     private JTextField txtObservaciones;
     private JButton btnRegistrarPrestamo;
     private JButton btnLimpiar;
@@ -29,11 +33,20 @@ public class PrestamoView extends JFrame {
     private JTextField txtObsDevolucion;
     private JButton btnProcesarDevolucion;
 
+    // Componentes adicionales para préstamo múltiple y condición de devolución
+    private JButton btnAgregarCarrito;
+    private JButton btnQuitarCarrito;
+    private JTable tblCarrito;
+    private JComboBox<String> cmbCondicionDevolucion;
+
     private final PrestamoService prestamoService;
     private final EquipoService equipoService;
     private final UsuarioService usuarioService;
 
-    private DefaultTableModel tableModel;
+    private DefaultTableModel tableModelPrestamos;
+    private DefaultTableModel tableModelCarrito;
+
+    private final List<DetallePrestamo> listaCarrito = new ArrayList<>();
     private Integer idPrestamoSeleccionado;
     private Integer idEquipoSeleccionado;
 
@@ -42,8 +55,8 @@ public class PrestamoView extends JFrame {
         equipoService = new EquipoService();
         usuarioService = new UsuarioService();
 
-        setTitle("Gestión de Préstamos y Devoluciones");
-        setSize(950, 650);
+        setTitle("Gestion de Prestamos y Devoluciones - SIGELAB");
+        setSize(1000, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -51,32 +64,39 @@ public class PrestamoView extends JFrame {
             setContentPane(panelPrincipal);
         }
 
+        configurarComponentesForm();
         configurarSpinnerFecha();
         cargarCombos();
-        configurarTabla();
+        configurarTablas();
         cargarDatosTabla();
 
         if (btnRegistrarPrestamo != null) btnRegistrarPrestamo.addActionListener(e -> registrarPrestamo());
         if (btnProcesarDevolucion != null) btnProcesarDevolucion.addActionListener(e -> procesarDevolucion());
         if (btnLimpiar != null) btnLimpiar.addActionListener(e -> limpiarFormulario());
         if (btnCerrar != null) btnCerrar.addActionListener(e -> dispose());
+        if (btnAgregarCarrito != null) btnAgregarCarrito.addActionListener(e -> agregarAlCarrito());
+        if (btnQuitarCarrito != null) btnQuitarCarrito.addActionListener(e -> quitarDelCarrito());
 
         if (tblPrestamos != null) {
             tblPrestamos.getSelectionModel().addListSelectionListener(e -> seleccionarFila());
         }
     }
 
+    private void configurarComponentesForm() {
+        if (cmbCondicionDevolucion != null) {
+            cmbCondicionDevolucion.removeAllItems();
+            cmbCondicionDevolucion.addItem("BUENO");
+            cmbCondicionDevolucion.addItem("DANADO");
+        }
+    }
+
     private void configurarSpinnerFecha() {
         if (spnFechaDevolucion != null) {
-            // Configurar el modelo de fecha del JSpinner
             SpinnerDateModel dateModel = new SpinnerDateModel();
             spnFechaDevolucion.setModel(dateModel);
-
-            // Establecer el formato visual: YYYY-MM-DD HH:mm
             JSpinner.DateEditor dateEditor = new JSpinner.DateEditor(spnFechaDevolucion, "yyyy-MM-dd");
             spnFechaDevolucion.setEditor(dateEditor);
 
-            // Valor por defecto: 24 horas después del momento actual
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.DAY_OF_MONTH, 1);
             spnFechaDevolucion.setValue(cal.getTime());
@@ -101,25 +121,33 @@ public class PrestamoView extends JFrame {
         }
     }
 
-    private void configurarTabla() {
-        tableModel = new DefaultTableModel(
-                new String[]{"ID Préstamo", "ID Equipo", "Solicitante", "Equipo", "Código", "Fecha Préstamo", "Estado"}, 0
+    private void configurarTablas() {
+        tableModelPrestamos = new DefaultTableModel(
+                new String[]{"ID Prestamo", "ID Equipo", "Solicitante", "Equipo", "Codigo", "Fecha Prestamo", "Estado"}, 0
         ) {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            public boolean isCellEditable(int row, int column) { return false; }
         };
         if (tblPrestamos != null) {
-            tblPrestamos.setModel(tableModel);
+            tblPrestamos.setModel(tableModelPrestamos);
+        }
+
+        tableModelCarrito = new DefaultTableModel(
+                new String[]{"ID Equipo", "Codigo", "Nombre"}, 0
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        if (tblCarrito != null) {
+            tblCarrito.setModel(tableModelCarrito);
         }
     }
 
     private void cargarDatosTabla() {
-        tableModel.setRowCount(0);
+        tableModelPrestamos.setRowCount(0);
         List<Prestamo> lista = prestamoService.obtenerPrestamosActivos();
         for (Prestamo p : lista) {
-            tableModel.addRow(new Object[]{
+            tableModelPrestamos.addRow(new Object[]{
                     p.getIdPrestamo(),
                     p.getIdEquipo(),
                     p.getNombreUsuario(),
@@ -131,46 +159,74 @@ public class PrestamoView extends JFrame {
         }
     }
 
+    private void agregarAlCarrito() {
+        Equipo eq = (Equipo) cmbEquipo.getSelectedItem();
+        if (eq == null) {
+            JOptionPane.showMessageDialog(this, "Debe seleccionar un equipo disponible.", "Atencion", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        for (DetallePrestamo det : listaCarrito) {
+            if (det.getIdEquipo().equals(eq.getIdEquipo())) {
+                JOptionPane.showMessageDialog(this, "El equipo ya esta agregado a la lista.", "Atencion", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
+
+        DetallePrestamo det = new DetallePrestamo(eq.getIdEquipo(), eq.getNombre(), eq.getCodigoInventario());
+        listaCarrito.add(det);
+        tableModelCarrito.addRow(new Object[]{eq.getIdEquipo(), eq.getCodigoInventario(), eq.getNombre()});
+    }
+
+    private void quitarDelCarrito() {
+        if (tblCarrito == null) return;
+        int fila = tblCarrito.getSelectedRow();
+        if (fila >= 0) {
+            listaCarrito.remove(fila);
+            tableModelCarrito.removeRow(fila);
+        } else {
+            JOptionPane.showMessageDialog(this, "Seleccione un equipo de la tabla de lista para quitarlo.", "Atencion", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
     private void registrarPrestamo() {
         try {
             Usuario u = (Usuario) cmbUsuario.getSelectedItem();
-            Equipo eq = (Equipo) cmbEquipo.getSelectedItem();
-            String obs = txtObservaciones.getText();
+            String obs = txtObservaciones != null ? txtObservaciones.getText() : "";
 
             String solicitante = u != null ? u.getStrNombre() + " " + u.getStrApellido() : "";
-            Integer idEquipo = eq != null ? eq.getIdEquipo() : null;
             Integer idUsuarioRegistra = u != null ? u.getIdUsuario() : 1;
 
-            // Obtener la fecha seleccionada del JSpinner
             Date fechaSeleccionada = (Date) spnFechaDevolucion.getValue();
             Timestamp fechaEsperada = new Timestamp(fechaSeleccionada.getTime());
 
-            prestamoService.realizarPrestamo(solicitante, idEquipo, idUsuarioRegistra, fechaEsperada, obs);
+            prestamoService.realizarPrestamoMultiple(solicitante, listaCarrito, idUsuarioRegistra, fechaEsperada, obs);
 
-            JOptionPane.showMessageDialog(this, "Préstamo registrado exitosamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Prestamo registrado exitosamente.", "Exito", JOptionPane.INFORMATION_MESSAGE);
             limpiarFormulario();
             cargarCombos();
             cargarDatosTabla();
 
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Error de Validacion", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void procesarDevolucion() {
         if (idPrestamoSeleccionado == null || idEquipoSeleccionado == null) {
-            JOptionPane.showMessageDialog(this, "Seleccione un préstamo activo de la tabla para recibir el equipo.", "Atención", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Seleccione un prestamo activo de la tabla para recibir el equipo.", "Atencion", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         try {
-            String obs = txtObsDevolucion.getText();
+            String obs = txtObsDevolucion != null ? txtObsDevolucion.getText() : "";
             Usuario u = (Usuario) cmbUsuario.getSelectedItem();
             int idUsuarioRecibe = u != null ? u.getIdUsuario() : 1;
+            String condicion = cmbCondicionDevolucion != null ? (String) cmbCondicionDevolucion.getSelectedItem() : "BUENO";
 
-            prestamoService.procesarDevolucion(idPrestamoSeleccionado, idEquipoSeleccionado, idUsuarioRecibe, "BUENO", obs);
+            prestamoService.procesarDevolucion(idPrestamoSeleccionado, idEquipoSeleccionado, idUsuarioRecibe, condicion, obs);
 
-            JOptionPane.showMessageDialog(this, "Devolución registrada correctamente. El equipo vuelve a estar DISPONIBLE.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Devolucion registrada en condicion '" + condicion + "'.", "Exito", JOptionPane.INFORMATION_MESSAGE);
             limpiarFormulario();
             cargarCombos();
             cargarDatosTabla();
@@ -181,21 +237,24 @@ public class PrestamoView extends JFrame {
     }
 
     private void seleccionarFila() {
+        if (tblPrestamos == null) return;
         int fila = tblPrestamos.getSelectedRow();
         if (fila >= 0) {
-            idPrestamoSeleccionado = (Integer) tableModel.getValueAt(fila, 0);
-            idEquipoSeleccionado = (Integer) tableModel.getValueAt(fila, 1);
+            idPrestamoSeleccionado = (Integer) tableModelPrestamos.getValueAt(fila, 0);
+            idEquipoSeleccionado = (Integer) tableModelPrestamos.getValueAt(fila, 1);
         }
     }
 
     private void limpiarFormulario() {
         idPrestamoSeleccionado = null;
         idEquipoSeleccionado = null;
+        listaCarrito.clear();
+        if (tableModelCarrito != null) tableModelCarrito.setRowCount(0);
+
         if (txtObservaciones != null) txtObservaciones.setText("");
         if (txtObsDevolucion != null) txtObsDevolucion.setText("");
         if (tblPrestamos != null) tblPrestamos.clearSelection();
 
-        // Resetear la fecha a +24h
         if (spnFechaDevolucion != null) {
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.DAY_OF_MONTH, 1);

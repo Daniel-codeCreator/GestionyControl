@@ -72,6 +72,40 @@ public class EquipoRepository {
         return null;
     }
 
+    public Equipo obtenerPorId(int idEquipo) {
+        String sql = "SELECT IdEquipo, CodigoInventario, Nombre, Estado FROM Equipo WHERE IdEquipo = ?";
+
+        try (Connection conn = connection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, idEquipo);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Equipo eq = new Equipo();
+                    eq.setIdEquipo(rs.getInt("IdEquipo"));
+                    eq.setStrCodigo(rs.getString("CodigoInventario"));
+                    eq.setStrNombre(rs.getString("Nombre"));
+
+                    String estadoStr = rs.getString("Estado");
+                    if (estadoStr != null) {
+                        try {
+                            eq.setEstado(EstadoEquipo.valueOf(estadoStr.toUpperCase().trim()));
+                        } catch (IllegalArgumentException e) {
+                            eq.setEstado(EstadoEquipo.DISPONIBLE);
+                        }
+                    }
+
+                    return eq;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al obtener equipo por ID: " + e.getMessage());
+        }
+
+        return null;
+    }
+
     public boolean guardar(Equipo eq) {
         String sql = "INSERT INTO Equipo (CodigoInventario, Nombre, IdTipoEquipo, IdLaboratorio, Estado, Marca, Modelo, NumeroSerie) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";

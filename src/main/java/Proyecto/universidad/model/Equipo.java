@@ -109,6 +109,25 @@ public class Equipo {
     public void setStrNombreLaboratorio(String strNombreLaboratorio) {
         this.strNombreLaboratorio = strNombreLaboratorio;
     }
+
+    // --- Métodos puente de compatibilidad ---
+
+    public String getNombre() {
+        return this.strNombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.strNombre = nombre;
+    }
+
+    public String getCodigoInventario() {
+        return this.strCodigo;
+    }
+
+    public void setCodigoInventario(String codigo) {
+        this.strCodigo = codigo;
+    }
+
     @Override
     public String toString() {
         return this.getStrNombre() + " - " + this.getStrCodigo();
