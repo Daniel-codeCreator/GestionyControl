@@ -379,6 +379,175 @@ CREATE INDEX IX_Auditoria_Usuario
 GO
 
 
+/*
+   Registra únicamente los eventos de auditoría del inicio de sesión.
+   La fecha/hora la genera SQL Server para no depender del reloj de la PC.
+*/
+CREATE OR ALTER PROCEDURE dbo.sp_RegistrarAuditoriaLogin
+    @IdUsuario INT = NULL,
+    @Accion VARCHAR(100),
+    @Descripcion VARCHAR(500) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @Accion IS NULL OR @Accion NOT IN ('LOGIN_EXITOSO', 'LOGIN_FALLIDO')
+    BEGIN
+        THROW 50001, 'Acción de auditoría de login no permitida.', 1;
+    END;
+
+    -- Un login fallido puede llegar sin usuario; si el ID no existe,
+    -- se guarda como NULL para no romper la llave foránea.
+    IF @IdUsuario IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE IdUsuario = @IdUsuario)
+    BEGIN
+        SET @IdUsuario = NULL;
+    END;
+
+    INSERT INTO dbo.Auditoria
+    (
+        IdUsuario,
+        FechaHora,
+        Accion,
+        Entidad,
+        IdRegistro,
+        Descripcion
+    )
+    VALUES
+    (
+        @IdUsuario,
+        SYSDATETIME(),
+        @Accion,
+        'Usuario',
+        @IdUsuario,
+        @Descripcion
+    );
+END;
+GO
+
+
+/*
+   Crea un usuario nuevo y registra su auditoría USUARIO_CREADO
+   en la misma transacción. La contraseña llega ya cifrada con
+   BCrypt desde Java.
+*/
+CREATE OR ALTER PROCEDURE dbo.sp_CrearUsuario
+    @Nombre VARCHAR(100),
+    @Apellido VARCHAR(100),
+    @NombreUsuario VARCHAR(50),
+    @Contrasena VARCHAR(255),
+    @Correo VARCHAR(150),
+    @IdRol INT,
+    @Estado VARCHAR(10) = 'ACTIVO',
+    @IdUsuario INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @Nombre IS NULL OR LTRIM(RTRIM(@Nombre)) = ''
+    BEGIN
+        THROW 50020, 'El nombre es obligatorio.', 1;
+    END;
+
+    IF @Apellido IS NULL OR LTRIM(RTRIM(@Apellido)) = ''
+    BEGIN
+        THROW 50021, 'El apellido es obligatorio.', 1;
+    END;
+
+    IF @NombreUsuario IS NULL OR LTRIM(RTRIM(@NombreUsuario)) = ''
+    BEGIN
+        THROW 50022, 'El nombre de usuario es obligatorio.', 1;
+    END;
+
+    IF @Contrasena IS NULL OR LTRIM(RTRIM(@Contrasena)) = ''
+    BEGIN
+        THROW 50023, 'La contraseña es obligatoria.', 1;
+    END;
+
+    IF @Correo IS NULL OR @Correo NOT LIKE '%_@_%.__%'
+    BEGIN
+        THROW 50024, 'El correo no tiene un formato válido.', 1;
+    END;
+
+    IF @Estado IS NULL OR @Estado NOT IN ('ACTIVO', 'INACTIVO')
+    BEGIN
+        THROW 50025, 'El estado debe ser ACTIVO o INACTIVO.', 1;
+    END;
+
+    IF @IdRol IS NULL
+       OR NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE IdRol = @IdRol AND Estado = 'ACTIVO')
+    BEGIN
+        THROW 50010, 'El rol indicado no existe o está inactivo.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.Usuario WHERE NombreUsuario = @NombreUsuario)
+    BEGIN
+        THROW 50012, 'Ya existe un usuario con ese nombre de usuario.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.Usuario WHERE Correo = @Correo)
+    BEGIN
+        THROW 50013, 'Ya existe un usuario con ese correo.', 1;
+    END;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        INSERT INTO dbo.Usuario
+        (
+            Nombre,
+            Apellido,
+            NombreUsuario,
+            Contrasena,
+            Correo,
+            IdRol,
+            Estado
+        )
+        VALUES
+        (
+            LTRIM(RTRIM(@Nombre)),
+            LTRIM(RTRIM(@Apellido)),
+            LTRIM(RTRIM(@NombreUsuario)),
+            @Contrasena,
+            LTRIM(RTRIM(@Correo)),
+            @IdRol,
+            @Estado
+        );
+
+        SET @IdUsuario = CAST(SCOPE_IDENTITY() AS INT);
+
+        INSERT INTO dbo.Auditoria
+        (
+            IdUsuario,
+            FechaHora,
+            Accion,
+            Entidad,
+            IdRegistro,
+            Descripcion
+        )
+        VALUES
+        (
+            @IdUsuario,
+            SYSDATETIME(),
+            'USUARIO_CREADO',
+            'Usuario',
+            @IdUsuario,
+            'Usuario creado: ' + @NombreUsuario + ' con rol ' + CAST(@IdRol AS VARCHAR(10)) + '.'
+        );
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
+        THROW;
+    END CATCH;
+END;
+GO
+
+
 -- ingresa los tipos de roles
 INSERT INTO Rol
 (

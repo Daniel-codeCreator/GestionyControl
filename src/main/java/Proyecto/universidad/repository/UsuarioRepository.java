@@ -8,7 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -108,7 +108,9 @@ public class UsuarioRepository {
     }
 
     /**
-     * Registra un nuevo usuario en el sistema.
+     * Crea un usuario ejecutando el procedimiento dbo.sp_CrearUsuario.
+     * El procedimiento además registra la auditoría USUARIO_CREADO.
+     * strPassword debe llegar ya cifrada con BCrypt.
      */
     public Usuario crearUsuario(
             String strNombre,
@@ -118,21 +120,11 @@ public class UsuarioRepository {
             String strCorreo,
             int intRol
     ) {
-        String strSql = """
-                INSERT INTO Usuario
-                (
-                    Nombre, Apellido, NombreUsuario,
-                    Contrasena, Correo, IdRol, Estado
-                )
-                VALUES (?, ?, ?, ?, ?, ?, 'ACTIVO')
-                """;
+        String strSql = "{call dbo.sp_CrearUsuario(?, ?, ?, ?, ?, ?, ?, ?)}";
 
         try (
                 Connection conn = connection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(
-                        strSql,
-                        Statement.RETURN_GENERATED_KEYS
-                )
+                CallableStatement stmt = conn.prepareCall(strSql)
         ) {
             stmt.setString(1, strNombre);
             stmt.setString(2, strApellido);
@@ -140,31 +132,42 @@ public class UsuarioRepository {
             stmt.setString(4, strPassword);
             stmt.setString(5, strCorreo);
             stmt.setInt(6, intRol);
+            stmt.setString(7, "ACTIVO");
+            stmt.registerOutParameter(8, Types.INTEGER);
 
-            stmt.executeUpdate();
+            stmt.execute();
 
-            try (ResultSet rs = stmt.getGeneratedKeys()) {
-                if (rs.next()) {
-                    Usuario usuario = new Usuario();
+            int intIdUsuario = stmt.getInt(8);
 
-                    usuario.setIdUsuario(rs.getInt(1));
-                    usuario.setStrNombre(strNombre);
-                    usuario.setStrApellido(strApellido);
-                    usuario.setStrUsuario(strUsuario);
-                    usuario.setStrPassword(strPassword);
-                    usuario.setStrCorreo(strCorreo);
-                    usuario.setIntRol(intRol);
-                    usuario.setStrEstado("ACTIVO");
+            Usuario usuario = new Usuario();
+            usuario.setIdUsuario(intIdUsuario);
+            usuario.setStrNombre(strNombre);
+            usuario.setStrApellido(strApellido);
+            usuario.setStrUsuario(strUsuario);
+            usuario.setStrPassword(strPassword);
+            usuario.setStrCorreo(strCorreo);
+            usuario.setIntRol(intRol);
+            usuario.setStrEstado("ACTIVO");
 
-                    return usuario;
-                }
-            }
+            return usuario;
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error al crear usuario: " + e.getMessage(), e);
+            throw new RuntimeException(mensajeErrorCreacion(e), e);
         }
+    }
 
-        return null;
+    /**
+     * Convierte los códigos de error del procedimiento en mensajes comprensibles,
+     * evitando mostrar SQLException crudas al usuario.
+     */
+    private String mensajeErrorCreacion(SQLException e) {
+        return switch (e.getErrorCode()) {
+            case 50010 -> "El rol seleccionado no existe o está inactivo.";
+            case 50012 -> "Ya existe un usuario con ese nombre de usuario.";
+            case 50013 -> "Ya existe un usuario con ese correo.";
+            case 2601, 2627 -> "Ya existe un usuario con ese nombre de usuario o correo.";
+            default -> "No se pudo crear el usuario: " + e.getMessage();
+        };
     }
     public Usuario crearUsuarioConSP(String strNombre, String strApellido, String strUsuario,
                                      String strPassword, String strCorreo, int intRol)
