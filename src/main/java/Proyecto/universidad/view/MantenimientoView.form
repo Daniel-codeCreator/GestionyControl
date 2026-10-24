@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="Proyecto.universidad.view.MantenimientoView">
+  <grid id="27dc6" binding="panelPrincipal" layout-manager="GridLayoutManager" row-count="9" column-count="7" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+    <margin top="0" left="0" bottom="0" right="0"/>
+    <constraints>
+      <xy x="20" y="20" width="914" height="400"/>
+    </constraints>
+    <properties/>
+    <border type="none"/>
+    <children>
+      <component id="e39d7" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="7" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <font name="Courier New" size="20" style="1"/>
+          <text value="Gestion de Mantenimiento"/>
+        </properties>
+      </component>
+      <vspacer id="47f4c">
+        <constraints>
+          <grid row="1" column="6" row-span="5" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+        </constraints>
+      </vspacer>
+      <component id="dbd5e" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Equipo Afectado"/>
+        </properties>
+      </component>
+      <component id="2c91d" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Tipo Mantenimiento"/>
+        </properties>
+      </component>
+      <component id="564e" class="javax.swing.JComboBox" binding="cmbTipoMantenimiento">
+        <constraints>
+          <grid row="1" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="9e088" class="javax.swing.JComboBox" binding="cmbEquipo">
+        <constraints>
+          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <model/>
+        </properties>
+      </component>
+      <component id="b8ceb" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Responsable"/>
+        </properties>
+      </component>
+      <component id="98235" class="javax.swing.JTextField" binding="txtResponsable">
+        <constraints>
+          <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+            <preferred-size width="150" height="-1"/>
+          </grid>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="192a3" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="2" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Descripcion Problema"/>
+        </properties>
+      </component>
+      <component id="c392f" class="javax.swing.JTextField" binding="txtDescripcion">
+        <constraints>
+          <grid row="2" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+            <preferred-size width="150" height="-1"/>
+          </grid>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="ac33" class="javax.swing.JButton" binding="btnRegistrarIngreso">
+        <constraints>
+          <grid row="3" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Registrar Ingreso Equipo"/>
+        </properties>
+      </component>
+      <component id="afcc2" class="javax.swing.JButton" binding="btnLimpiar">
+        <constraints>
+          <grid row="3" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Limpiar"/>
+        </properties>
+      </component>
+      <component id="e646c" class="javax.swing.JButton" binding="btnCerrar">
+        <constraints>
+          <grid row="3" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="1" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Cerrar"/>
+        </properties>
+      </component>
+      <component id="ecc08" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Mantenimientos en Proceso "/>
+        </properties>
+      </component>
+      <scrollpane id="11553">
+        <constraints>
+          <grid row="5" column="0" row-span="1" col-span="5" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="f9fa0" class="javax.swing.JTable" binding="tblMantenimientos">
+            <constraints/>
+            <properties/>
+          </component>
+        </children>
+      </scrollpane>
+      <component id="abcde" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="6" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Cierre de Mantenimientos"/>
+        </properties>
+      </component>
+      <component id="ade6" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="7" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Resultados "/>
+        </properties>
+      </component>
+      <component id="9e0f0" class="javax.swing.JComboBox" binding="cmbResultadoCierre">
+        <constraints>
+          <grid row="7" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <model>
+            <item value="Reparado"/>
+            <item value="No Reparado"/>
+          </model>
+        </properties>
+      </component>
+      <component id="41b48" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="8" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Observaciones Finales"/>
+        </properties>
+      </component>
+      <component id="bc343" class="javax.swing.JTextField" binding="txtObservacionesSalida">
+        <constraints>
+          <grid row="8" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+            <preferred-size width="150" height="-1"/>
+          </grid>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="19354" class="javax.swing.JButton" binding="btnFinalizarMantenimiento">
+        <constraints>
+          <grid row="8" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Finalizar Mantenimeinto"/>
+        </properties>
+      </component>
+    </children>
+  </grid>
+</form>

@@ -57,6 +57,25 @@ public class LaboratorioRepository {
         return null;
     }
 
+    // Genera el siguiente código consecutivo: LAB-00001, LAB-00002, ...
+    public String generarSiguienteCodigo() {
+        String strSQL = "select  ISNULL(MAX(CAST(substring(Codigo, 5, 5) as int)), 0) + 1 " +
+                "from Laboratorio where Codigo like 'LAB-[0-9][0-9][0-9][0-9][0-9]'";
+
+
+        try (Connection conn = connection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(strSQL);
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (rs.next()) {
+                return String.format("LAB-%05d", rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al generar código de laboratorio: " + e.getMessage());
+        }
+        return null;
+    }
+
     public boolean guardar(Laboratorio lab) {
         String sql = "INSERT INTO Laboratorio (Codigo, Nombre, Ubicacion, Capacidad, Estado) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = connection.getConnection();

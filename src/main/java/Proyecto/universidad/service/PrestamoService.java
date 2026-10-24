@@ -27,11 +27,15 @@ public class PrestamoService {
     }
 
     public void realizarPrestamoMultiple(String solicitante, List<DetallePrestamo> detalles, Integer idUsuarioRegistra, Timestamp fechaEsperada, String observaciones) throws Exception {
+        if (idUsuarioRegistra == null || idUsuarioRegistra <= 0) {
+            throw new Exception("No hay un usuario con sesión iniciada.");
+        }
+
         if (solicitante == null || solicitante.isBlank()) {
             throw new Exception("El nombre del solicitante es obligatorio.");
         }
 
-        // RN-05: Al menos un equipo[cite: 11]
+        // RN-05: al menos un equipo
         if (detalles == null || detalles.isEmpty()) {
             throw new Exception("Debe agregar al menos un equipo al préstamo.");
         }
@@ -40,7 +44,15 @@ public class PrestamoService {
             throw new Exception("Debe seleccionar una fecha de devolución válida.");
         }
 
-        // RN-06: No duplicados[cite: 11]
+        if (observaciones == null || observaciones.isBlank()) {
+            throw new Exception("Debe seleccionar un observacion es obligatorio.");
+        }
+
+        if (fechaEsperada.toLocalDateTime().toLocalDate().isBefore(java.time.LocalDate.now())) {
+            throw new Exception(("La fecha de devolucion no puede ser menor a la de hoy"));
+        }
+
+        // RN-06: el mismo equipo no puede aparecer dos veces
         Set<Integer> ids = new HashSet<>();
         for (DetallePrestamo d : detalles) {
             if (!ids.add(d.getIdEquipo())) {
@@ -48,7 +60,7 @@ public class PrestamoService {
             }
         }
 
-        // RN-07, RN-08 y RN-20: Verificar disponibilidad en BD desde Service[cite: 11, 13]
+        // RN-07, RN-08 y RN-20: la disponibilidad se verifica en la BD desde el Service
         for (DetallePrestamo d : detalles) {
             Equipo eq = equipoRepository.obtenerPorId(d.getIdEquipo());
             if (eq == null) {
@@ -60,19 +72,20 @@ public class PrestamoService {
             }
         }
 
-        int idUsuario = idUsuarioRegistra != null ? idUsuarioRegistra : 1;
-
-        boolean ok = repository.registrarPrestamoMultiple(solicitante.trim(), detalles, idUsuario, fechaEsperada, observaciones);
+        boolean ok = repository.registrarPrestamoMultiple(solicitante.trim(), detalles, idUsuarioRegistra, fechaEsperada, observaciones);
         if (!ok) {
             throw new Exception("No se pudo completar el registro del préstamo.");
         }
     }
 
     public void procesarDevolucion(int idPrestamo, int idEquipo, int idUsuarioRecibe, String condicion, String obsDevolucion) throws Exception {
-        int idUsuario = idUsuarioRecibe > 0 ? idUsuarioRecibe : 1;
+        if (idUsuarioRecibe <= 0) {
+            throw new Exception("No hay un usuario con sesión iniciada.");
+        }
+
         String cond = (condicion != null && !condicion.isBlank()) ? condicion : "BUENO";
 
-        boolean ok = repository.registrarDevolucion(idPrestamo, idEquipo, idUsuario, cond, obsDevolucion);
+        boolean ok = repository.registrarDevolucion(idPrestamo, idEquipo, idUsuarioRecibe, cond, obsDevolucion);
         if (!ok) {
             throw new Exception("No se pudo procesar la devolución. Verifique si el equipo ya fue devuelto.");
         }

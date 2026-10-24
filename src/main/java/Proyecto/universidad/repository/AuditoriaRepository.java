@@ -10,13 +10,21 @@ import java.sql.Timestamp;
 
 public class AuditoriaRepository {
 
+    // Abre su propia conexión (login, etc.)
     public void registrar(Auditoria auditoria) {
-        // Ajustado a los nombres exactos de columnas de SQL Server en CamelCase
+        try (Connection conn = connection.getConnection()) {
+            registrar(conn, auditoria);
+        } catch (SQLException e) {
+            System.err.println("Error al registrar auditoría en BD: " + e.getMessage());
+        }
+    }
+
+    // Usa la conexión recibida: si falla, el SQLException sube y la transacción hace rollback (RN-18)
+    public void registrar(Connection conn, Auditoria auditoria) throws SQLException {
         String sql = "INSERT INTO Auditoria (IdUsuario, FechaHora, Accion, Entidad, IdRegistro, Descripcion) " +
                 "VALUES (?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = connection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             if (auditoria.getIdUsuario() != null) {
                 stmt.setInt(1, auditoria.getIdUsuario());
@@ -37,9 +45,6 @@ public class AuditoriaRepository {
             stmt.setString(6, auditoria.getDescripcion());
 
             stmt.executeUpdate();
-
-        } catch (SQLException e) {
-            System.err.println("Error al registrar auditoría en BD: " + e.getMessage());
         }
     }
 }

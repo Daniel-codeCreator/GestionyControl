@@ -15,25 +15,8 @@ public class main {
             asegurarUsuarioAdministrador();
 
             Login login = new Login();
-
-            JFrame frame = new JFrame("Sistema de Gestión y Control");
-
-            frame.setContentPane(login.getPanelPrincipal());
-
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-            // Tamaño fijado manualmente en 800x600 píxeles
-            frame.setSize(800, 600);
-
-            // Importante: setLocationRelativeTo siempre va DESPUÉS de setSize
-            frame.setLocationRelativeTo(null);
-
-            frame.setResizable(false);
-
-            frame.setVisible(true);
+            login.setVisible(true);
         });
-
-
     }
 
     private static void asegurarUsuarioAdministrador() {

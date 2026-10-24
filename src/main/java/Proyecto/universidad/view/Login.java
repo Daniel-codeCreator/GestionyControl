@@ -4,6 +4,7 @@ import Proyecto.universidad.integration.facial.FacialAuthClient;
 import Proyecto.universidad.integration.facial.FacialClientException;
 import Proyecto.universidad.integration.facial.FacialEnrollmentResult;
 import Proyecto.universidad.integration.facial.FacialVerificationResult;
+import Proyecto.universidad.integration.facial.FacialStatus;
 import Proyecto.universidad.model.Usuario;
 import Proyecto.universidad.service.AuthService;
 
@@ -192,40 +193,62 @@ public class Login extends JFrame {
             return;
         }
 
-        try {
-            // 1. Validar credenciales usando AuthService
-            Usuario u = authService.autenticar(usuario, password);
-            if (u == null) {
-                JOptionPane.showMessageDialog(this,
-                        "Credenciales incorrectas. No se puede registrar el rostro.",
-                        "Error", JOptionPane.ERROR_MESSAGE);
-                return;
+        if (autenticando) return;
+        autenticando = true;
+        btnRegistrarRostro.setEnabled(false);
+
+        new SwingWorker<String, Void>() {
+
+            @Override
+            protected String doInBackground() {
+                // 1. Validar credenciales
+                Usuario u = authService.autenticar(usuario, password);
+                if (u == null) {
+                    return "Credenciales incorrectas. No se puede registrar el rostro.";
+                }
+
+                // 2. Si ya tiene rostro, no se puede reemplazar desde el login
+                FacialStatus estado = facialAuthClient.status(u.getIdUsuario());
+                if (estado.enrolled()) {
+                    return "Este usuario ya tiene un rostro registrado. "
+                            + "Solo un administrador puede reemplazarlo.";
+                }
+
+                // 3. Registrar sin reemplazar (replace = false)
+                FacialEnrollmentResult resultado = facialAuthClient.enroll(u.getIdUsuario(), false);
+
+                if (resultado != null && resultado.success()) {
+                    return null; // éxito
+                }
+                return "No se pudo completar el registro facial: "
+                        + (resultado != null && resultado.message() != null
+                        ? resultado.message() : "Error en la captura.");
             }
 
-            // 2. Notificar e iniciar captura facial
-            JOptionPane.showMessageDialog(this,
-                    "Se abrirá la cámara. Por favor mire hacia el frente para capturar su rostro.",
-                    "Reconocimiento Facial", JOptionPane.INFORMATION_MESSAGE);
-
-            // 3. Evaluar el resultado de tipo FacialEnrollmentResult
-            FacialEnrollmentResult resultado = facialAuthClient.enroll(u.getIdUsuario(), true);
-
-            if (resultado != null && resultado.success()) {
-                JOptionPane.showMessageDialog(this,
-                        "¡Rostro registrado exitosamente! Ya puede iniciar sesión usando reconocimiento facial.",
-                        "Éxito", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                String msg = (resultado != null && resultado.message() != null) ? resultado.message() : "Error en la captura.";
-                JOptionPane.showMessageDialog(this,
-                        "No se pudo completar el registro facial: " + msg,
-                        "Error", JOptionPane.ERROR_MESSAGE);
+            @Override
+            protected void done() {
+                try {
+                    String error = get();
+                    if (error == null) {
+                        JOptionPane.showMessageDialog(Login.this,
+                                "¡Rostro registrado exitosamente! Ya puede iniciar sesión.",
+                                "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        mostrarError(error);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    mostrarError(cause instanceof FacialClientException
+                            ? cause.getMessage()
+                            : "No fue posible completar el registro facial.");
+                } finally {
+                    autenticando = false;
+                    btnRegistrarRostro.setEnabled(true);
+                }
             }
-
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al conectar con el servicio facial: " + e.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
-        }
+        }.execute();
     }
 
     private void limpiarSeleccionPassword() {
@@ -234,20 +257,10 @@ public class Login extends JFrame {
             passwordField1.requestFocus();
         }
     }
-
     private void abrirMenu(Usuario usuarioAutenticado) {
-        // Inicializa el Menú pasando la información del usuario autenticado
         Menu menu = new Menu(usuarioAutenticado);
-        JFrame frameMenu = new JFrame("Sistema de Gestión y Control - Menú Principal");
-
-        frameMenu.setContentPane(menu.getJpanenPrincipal());
-        frameMenu.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frameMenu.setSize(800, 600);
-        frameMenu.setLocationRelativeTo(null);
-        frameMenu.setResizable(false);
-        frameMenu.setVisible(true);
-
-        this.dispose();
+        menu.setVisible(true);
+        this.dispose(); // cierra el Login
     }
 
     private void mostrarError(String strMensaje) {

@@ -67,6 +67,10 @@ public class LaboratorioView extends JFrame {
             cmbEstado.addItem("ACTIVO");
             cmbEstado.addItem("INACTIVO");
         }
+        if (txtCodigo != null) {
+            txtCodigo.setEditable(false);//ya que el codigo es automatico no lo van a poder cambiar
+            txtCodigo.setText("(automatico)");
+        }
     }
 
     private void configurarTabla() {
@@ -109,14 +113,15 @@ public class LaboratorioView extends JFrame {
 
     private void guardar() {
         try {
-            String codigo = txtCodigo.getText();
             String nombre = txtNombre.getText();
             String ubicacion = txtUbicacion.getText();
             int capacidad = Integer.parseInt(txtCapacidad.getText().trim());
 
-            laboratorioService.registrarLaboratorio(codigo, nombre, ubicacion, capacidad);
+            String codigo = laboratorioService.registrarLaboratorio(nombre, ubicacion, capacidad);
 
-            JOptionPane.showMessageDialog(this, "Laboratorio registrado exitosamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Laboratorio registrado exitosamente.\nCódigo asignado: " + codigo,
+                    "Éxito", JOptionPane.INFORMATION_MESSAGE);
             limpiarFormulario();
             cargarDatosTabla();
 
@@ -169,7 +174,7 @@ public class LaboratorioView extends JFrame {
 
     private void limpiarFormulario() {
         idLaboratorioSeleccionado = null;
-        if (txtCodigo != null) txtCodigo.setText("");
+        if (txtCodigo != null) txtCodigo.setText("(automático)");
         if (txtNombre != null) txtNombre.setText("");
         if (txtUbicacion != null) txtUbicacion.setText("");
         if (txtCapacidad != null) txtCapacidad.setText("");
