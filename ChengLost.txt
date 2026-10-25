@@ -41,3 +41,6 @@ Proyecto Final Progra 2
 --Se corrige BUG donde cerraba todas las pestañas al cerrar cada modulo
 --Se arregla el metodo de Prestamos
 --Se agrega funcionalidad para cuando creen Laboratorios los cree con codigo Automatico
+
+2026-10-25
+--se hace modulo de Manteniminetos

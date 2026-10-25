@@ -56,7 +56,8 @@ public class Menu extends JFrame {
         }
 
         if (btnMantenimiento != null) {
-            btnMantenimiento.addActionListener(e -> JOptionPane.showMessageDialog(this, "Módulo de Mantenimiento en construcción."));
+
+            btnMantenimiento.addActionListener(e -> abrirMantenimiento());
         }
 
         if (btnCrearUsuario != null) {
@@ -91,6 +92,9 @@ public class Menu extends JFrame {
     private void abrirPrestamos() {
         abrirVentana(new PrestamoView(usuarioLogueado));
     }
+
+    private void abrirMantenimiento() {abrirVentana(new MantenimientoView());}
+
 
     private void abrirPantallaCrearUsuario() {
         // Valida que el usuario exista y que su IdRol sea 1 (ADMIN)
