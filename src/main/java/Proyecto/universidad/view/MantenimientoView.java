@@ -6,7 +6,6 @@ import Proyecto.universidad.model.Mantenimiento;
 import Proyecto.universidad.model.Usuario;
 import Proyecto.universidad.service.EquipoService;
 import Proyecto.universidad.service.MantenimientoService;
-import Proyecto.universidad.service.UsuarioService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -29,16 +28,18 @@ public class MantenimientoView extends JFrame {
 
     private final MantenimientoService mantenimientoService;
     private final EquipoService equipoService;
-    private final UsuarioService usuarioService;
 
     private DefaultTableModel tableModel;
     private Integer idMantenimientoSeleccionado;
-    private Integer idEquipoSeleccionado;
 
-    public MantenimientoView() {
+    // Usuario con sesión iniciada: es quien registra el ingreso y el cierre
+    private final Usuario usuarioLogueado;
+
+    public MantenimientoView(Usuario usuarioLogueado) {
+        this.usuarioLogueado = usuarioLogueado;
+
         mantenimientoService = new MantenimientoService();
         equipoService = new EquipoService();
-        usuarioService = new UsuarioService();
 
         setTitle("Gestion de Mantenimiento de Equipos - SIGELAB");
         setSize(950, 650);
@@ -79,13 +80,23 @@ public class MantenimientoView extends JFrame {
     }
 
     private void cargarCombos() {
-        if (cmbEquipo != null) {
-            cmbEquipo.removeAllItems();
-            List<Equipo> equipos = equipoService.obtenerTodos();
-            for (Equipo eq : equipos) {
-                if (eq.getEstado() == EstadoEquipo.DANADO || eq.getEstado() == EstadoEquipo.DISPONIBLE) {
-                    cmbEquipo.addItem(eq);
-                }
+        if (cmbEquipo == null) return;
+
+        cmbEquipo.removeAllItems();
+
+        String tipo = cmbTipoMantenimiento != null
+                ? (String) cmbTipoMantenimiento.getSelectedItem()
+                : "CORRECTIVO";
+
+        // CORRECTIVO -> equipos dañados | PREVENTIVO -> equipos disponibles
+        EstadoEquipo estadoRequerido = "PREVENTIVO".equals(tipo)
+                ? EstadoEquipo.DISPONIBLE
+                : EstadoEquipo.DANADO;
+
+        List<Equipo> equipos = equipoService.obtenerTodos();
+        for (Equipo eq : equipos) {
+            if (eq.getEstado() == estadoRequerido) {
+                cmbEquipo.addItem(eq);
             }
         }
     }
@@ -126,10 +137,7 @@ public class MantenimientoView extends JFrame {
             String tipo = cmbTipoMantenimiento != null ? (String) cmbTipoMantenimiento.getSelectedItem() : "CORRECTIVO";
             String resp = txtResponsable != null ? txtResponsable.getText() : "";
             String desc = txtDescripcion != null ? txtDescripcion.getText() : "";
-
-            // Obtiene un ID de usuario válido de la base de datos
-            List<Usuario> usuarios = usuarioService.obtenerTodos();
-            int idUsuarioRegistra = (usuarios != null && !usuarios.isEmpty()) ? usuarios.get(0).getIdUsuario() : 1;
+            Integer idUsuarioRegistra = usuarioLogueado != null ? usuarioLogueado.getIdUsuario() : null;
 
             mantenimientoService.ingresarAMantenimiento(idEquipo, tipo, desc, resp, idUsuarioRegistra);
 
@@ -144,7 +152,7 @@ public class MantenimientoView extends JFrame {
     }
 
     private void finalizarMantenimiento() {
-        if (idMantenimientoSeleccionado == null || idEquipoSeleccionado == null) {
+        if (idMantenimientoSeleccionado == null) {
             JOptionPane.showMessageDialog(this, "Seleccione un mantenimiento en proceso de la tabla.", "Atención", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -152,8 +160,9 @@ public class MantenimientoView extends JFrame {
         try {
             String resultado = cmbResultadoCierre != null ? (String) cmbResultadoCierre.getSelectedItem() : "REPARADO";
             String obs = txtObservacionesSalida != null ? txtObservacionesSalida.getText() : "";
+            Integer idUsuario = usuarioLogueado != null ? usuarioLogueado.getIdUsuario() : null;
 
-            mantenimientoService.cerrarMantenimiento(idMantenimientoSeleccionado, idEquipoSeleccionado, resultado, obs);
+            mantenimientoService.cerrarMantenimiento(idMantenimientoSeleccionado, resultado, obs, idUsuario);
 
             String estadoFinal = "REPARADO".equalsIgnoreCase(resultado) ? "DISPONIBLE" : "BAJA";
             JOptionPane.showMessageDialog(this, "Mantenimiento finalizado. El equipo pasa al estado: " + estadoFinal, "Éxito", JOptionPane.INFORMATION_MESSAGE);
@@ -172,13 +181,11 @@ public class MantenimientoView extends JFrame {
         int fila = tblMantenimientos.getSelectedRow();
         if (fila >= 0) {
             idMantenimientoSeleccionado = (Integer) tableModel.getValueAt(fila, 0);
-            idEquipoSeleccionado = (Integer) tableModel.getValueAt(fila, 1);
         }
     }
 
     private void limpiarFormulario() {
         idMantenimientoSeleccionado = null;
-        idEquipoSeleccionado = null;
         if (txtResponsable != null) txtResponsable.setText("");
         if (txtDescripcion != null) txtDescripcion.setText("");
         if (txtObservacionesSalida != null) txtObservacionesSalida.setText("");

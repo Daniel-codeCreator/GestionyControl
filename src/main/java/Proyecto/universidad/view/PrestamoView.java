@@ -8,6 +8,8 @@ import Proyecto.universidad.model.Usuario;
 import Proyecto.universidad.service.EquipoService;
 import Proyecto.universidad.service.PrestamoService;
 import Proyecto.universidad.service.UsuarioService;
+import Proyecto.universidad.service.QrService;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -31,6 +33,8 @@ public class PrestamoView extends JFrame {
     private JTable tblPrestamos;
     private JTextField txtObsDevolucion;
     private JButton btnProcesarDevolucion;
+    private JButton btnEscanearQR;
+    private final QrService qrService = new QrService();
 
     // La tabla grande ahora muestra los equipos DISPONIBLES (selección múltiple)
     private JButton btnAgregarCarrito;
@@ -47,6 +51,7 @@ public class PrestamoView extends JFrame {
 
     private Integer idPrestamoSeleccionado;
     private Integer idEquipoSeleccionado;
+
 
     // Usuario con sesión iniciada: es quien REGISTRA el préstamo y RECIBE la devolución
     private final Usuario usuarioLogueado;
@@ -80,6 +85,7 @@ public class PrestamoView extends JFrame {
         if (btnCerrar != null) btnCerrar.addActionListener(e -> dispose());
         if (btnAgregarCarrito != null) btnAgregarCarrito.addActionListener(e -> tblCarrito.selectAll());
         if (btnQuitarCarrito != null) btnQuitarCarrito.addActionListener(e -> tblCarrito.clearSelection());
+        if (btnEscanearQR != null) btnEscanearQR.addActionListener(e -> escanearQR());
 
         if (tblPrestamos != null) {
             tblPrestamos.getSelectionModel().addListSelectionListener(e -> seleccionarFila());
@@ -290,5 +296,72 @@ public class PrestamoView extends JFrame {
         if (spnFechaDevolucion != null) {
             spnFechaDevolucion.setValue(fechaSugerida());
         }
+    }
+
+    private void escanearQR() {
+        JFileChooser chooser = new JFileChooser(qrService.carpetaQr());
+        chooser.setDialogTitle("Seleccione la imagen del código QR");
+        chooser.setFileFilter(new FileNameExtensionFilter("Imágenes (PNG, JPG)", "png", "jpg", "jpeg"));
+
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        try {
+            // Solo identifica el equipo en la BD: no cambia ningún estado (RN-19)
+            Equipo eq = qrService.identificarEquipo(chooser.getSelectedFile());
+            String ficha = construirFicha(eq);
+
+            if (eq.getEstado() != EstadoEquipo.DISPONIBLE) {
+                JOptionPane.showMessageDialog(this,
+                        "Equipo identificado, pero NO está disponible: no puede prestarse.\n\n" + ficha,
+                        "QR - Equipo bloqueado", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            int fila = buscarFilaDisponible(eq.getIdEquipo());
+            if (fila < 0) {
+                cargarEquiposDisponibles();
+                fila = buscarFilaDisponible(eq.getIdEquipo());
+            }
+
+            if (fila >= 0) {
+                tblCarrito.addRowSelectionInterval(fila, fila);
+                tblCarrito.scrollRectToVisible(tblCarrito.getCellRect(fila, 0, true));
+            }
+
+            JOptionPane.showMessageDialog(this,
+                    "Equipo identificado y disponible. Se agregó a la selección del préstamo.\n\n" + ficha,
+                    "QR - Equipo disponible", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Lectura de QR", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private int buscarFilaDisponible(Integer idEquipo) {
+        for (int i = 0; i < tableModelDisponibles.getRowCount(); i++) {
+            if (idEquipo != null && idEquipo.equals(tableModelDisponibles.getValueAt(i, 0))) {
+                return tblCarrito.convertRowIndexToView(i);
+            }
+        }
+        return -1;
+    }
+
+    private String construirFicha(Equipo eq) {
+        String estado = eq.getEstado() == null
+                ? "DESCONOCIDO"
+                : eq.getEstado().name().replace("DANADO", "DAÑADO");
+
+        return "Código: " + texto(eq.getStrCodigo()) + "\n" +
+                "Equipo: " + texto(eq.getStrNombre()) + "\n" +
+                "Tipo: " + texto(eq.getStrNombreTipo()) + "\n" +
+                "Marca: " + texto(eq.getStrMarca()) + "\n" +
+                "Modelo: " + texto(eq.getStrModelo()) + "\n" +
+                "Serie: " + texto(eq.getStrSerie()) + "\n" +
+                "Laboratorio: " + texto(eq.getStrNombreLaboratorio()) + "\n" +
+                "Estado actual: " + estado;
+    }
+
+    private String texto(String valor) {
+        return (valor == null || valor.isBlank()) ? "-" : valor;
     }
 }
