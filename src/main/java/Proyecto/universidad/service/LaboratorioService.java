@@ -17,22 +17,27 @@ public class LaboratorioService {
         return repository.listarTodos();
     }
 
-    public void registrarLaboratorio(String codigo, String nombre, String ubicacion, int capacidad) throws Exception {
-        if (codigo == null || codigo.isBlank()) {
-            throw new Exception("El código del laboratorio es obligatorio.");
-        }
+    public String registrarLaboratorio(String nombre, String ubicacion, int capacidad) throws Exception {
         if (nombre == null || nombre.isBlank()) {
             throw new Exception("El nombre del laboratorio es obligatorio.");
         }
+        if (capacidad <= 0) {
+            throw new Exception("La capacidad debe ser un número mayor que cero.");
+        }
 
-        // Regla RN-03: El código del laboratorio debe ser único
-        Laboratorio existente = repository.buscarPorCodigo(codigo.trim());
-        if (existente != null) {
+        // El código se genera automáticamente
+        String codigo = repository.generarSiguienteCodigo();
+        if (codigo == null) {
+            throw new Exception("No se pudo generar el código del laboratorio. Intente de nuevo.");
+        }
+
+        // Regla RN-03: el código debe ser único (la BD también lo garantiza con UNIQUE)
+        if (repository.buscarPorCodigo(codigo) != null) {
             throw new Exception("Ya existe un laboratorio registrado con el código: " + codigo);
         }
 
         Laboratorio lab = new Laboratorio();
-        lab.setStrCodigo(codigo.trim());
+        lab.setStrCodigo(codigo);
         lab.setStrNombre(nombre.trim());
         lab.setStrUbicacion(ubicacion != null ? ubicacion.trim() : "");
         lab.setIntCapacidad(capacidad);
@@ -40,9 +45,12 @@ public class LaboratorioService {
 
         boolean guardado = repository.guardar(lab);
         if (!guardado) {
-            throw new Exception("Ocurrió un error al intentar guardar el laboratorio en la base de datos.");
+            throw new Exception("No se pudo guardar el laboratorio. Verifique que el nombre no esté repetido.");
         }
+
+        return codigo;
     }
+
 
     public void actualizarLaboratorio(Laboratorio lab) throws Exception {
         if (lab.getStrCodigo() == null || lab.getStrCodigo().isBlank()) {

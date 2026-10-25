@@ -3,12 +3,16 @@ package Proyecto.universidad.repository;
 import Proyecto.universidad.Config.connection;
 import Proyecto.universidad.model.DetallePrestamo;
 import Proyecto.universidad.model.Prestamo;
+import Proyecto.universidad.model.Auditoria;
+import java.time.LocalDateTime;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PrestamoRepository {
+
+    private final AuditoriaRepository auditoriaRepository = new AuditoriaRepository();
 
     public List<Prestamo> listarActivos() {
         List<Prestamo> lista = new ArrayList<>();
@@ -42,7 +46,9 @@ public class PrestamoRepository {
         return lista;
     }
 
-    public boolean registrarPrestamoMultiple(String solicitante, List<DetallePrestamo> detalles, int idUsuarioRegistra, Timestamp fechaEsperada, String observaciones) {
+    public boolean registrarPrestamoMultiple(String solicitante, List<DetallePrestamo> detalles,
+                                             int idUsuarioRegistra, Timestamp fechaEsperada, String observaciones) {
+
         String sqlPrestamo = "INSERT INTO Prestamo (Solicitante, FechaPrestamo, FechaEsperadaDevolucion, IdUsuarioRegistra, Estado, Observaciones) " +
                 "VALUES (?, SYSDATETIME(), ?, ?, 'ACTIVO', ?)";
         String sqlDetalle = "INSERT INTO DetallePrestamo (IdPrestamo, IdEquipo, Estado) VALUES (?, ?, 'PENDIENTE')";
@@ -88,6 +94,15 @@ public class PrestamoRepository {
                 stmtD.executeBatch();
                 stmtE.executeBatch();
             }
+
+            auditoriaRepository.registrar(conn, new Auditoria(
+                    idUsuarioRegistra,
+                    LocalDateTime.now(),
+                    "PRESTAMO_CREADO",
+                    "Prestamo",
+                    idPrestamoGenerado,
+                    "Préstamo a " + solicitante + " con " + detalles.size() + " equipo(s)."
+            ));
 
             conn.commit();
             return true;
@@ -176,6 +191,16 @@ public class PrestamoRepository {
                 stmtE.setInt(2, idEquipo);
                 stmtE.executeUpdate();
             }
+
+            auditoriaRepository.registrar(conn, new Auditoria(
+                    idUsuarioRecibe,
+                    LocalDateTime.now(),
+                    "EQUIPO_DEVUELTO",
+                    "Equipo",
+                    idEquipo,
+                    "Equipo devuelto en condición " + condicion + " (préstamo " + idPrestamo + ")."
+            ));
+
 
             conn.commit();
             return true;

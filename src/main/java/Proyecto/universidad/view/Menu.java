@@ -3,6 +3,8 @@ package Proyecto.universidad.view;
 import Proyecto.universidad.model.Usuario;
 
 import javax.swing.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class Menu extends JFrame {
 
@@ -54,7 +56,8 @@ public class Menu extends JFrame {
         }
 
         if (btnMantenimiento != null) {
-            btnMantenimiento.addActionListener(e -> JOptionPane.showMessageDialog(this, "Módulo de Mantenimiento en construcción."));
+
+            btnMantenimiento.addActionListener(e -> abrirMantenimiento());
         }
 
         if (btnCrearUsuario != null) {
@@ -62,31 +65,41 @@ public class Menu extends JFrame {
         }
     }
 
+    // Oculta el menú (NO lo cierra), abre el módulo y vuelve a mostrar el menú cuando el módulo se cierra
+    private void abrirVentana(JFrame ventana) {
+        setVisible(false);
+        ventana.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                setVisible(true);
+            }
+        });
+        ventana.setVisible(true);
+    }
+
     private void abrirLaboratorios() {
-        LaboratorioView labView = new LaboratorioView();
-        labView.setVisible(true);
+        abrirVentana(new LaboratorioView());
     }
 
     private void abrirTiposEquipo() {
-        TipoEquipoView tipoView = new TipoEquipoView();
-        tipoView.setVisible(true);
+        abrirVentana(new TipoEquipoView());
     }
 
     private void abrirEquipos() {
-        EquiposView equiView = new EquiposView();
-        equiView.setVisible(true);
+        abrirVentana(new EquiposView());
     }
 
     private void abrirPrestamos() {
-        PrestamoView prestamoView = new PrestamoView();
-        prestamoView.setVisible(true);
+        abrirVentana(new PrestamoView(usuarioLogueado));
     }
+
+    private void abrirMantenimiento() {abrirVentana(new MantenimientoView());}
+
 
     private void abrirPantallaCrearUsuario() {
         // Valida que el usuario exista y que su IdRol sea 1 (ADMIN)
         if (usuarioLogueado != null && usuarioLogueado.getIntRol() == 1) {
-            UsuarioView usuarioView = new UsuarioView();
-            usuarioView.setVisible(true);
+            abrirVentana(new UsuarioView());
         } else {
             JOptionPane.showMessageDialog(
                     this,
