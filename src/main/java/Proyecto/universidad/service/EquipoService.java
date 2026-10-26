@@ -70,4 +70,9 @@ public class EquipoService {
             throw new Exception("No se pudo actualizar el equipo.");
         }
     }
+
+    public Equipo buscarPorCodigo(String codigo) {
+        if (codigo == null || codigo.isBlank()) return null;
+        return repository.buscarFichaPorCodigo(codigo.trim());
+    }
 }

@@ -7,6 +7,11 @@ import Proyecto.universidad.model.TipoEquipo;
 import Proyecto.universidad.service.EquipoService;
 import Proyecto.universidad.service.LaboratorioService;
 import Proyecto.universidad.service.TipoEquipoService;
+import Proyecto.universidad.service.QrService;
+import java.awt.BorderLayout;
+import java.awt.Font;
+import java.awt.image.BufferedImage;
+import java.io.File;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -30,6 +35,8 @@ public class EquiposView extends JFrame {
     private JButton btnLimpiar;
     private JButton btnCerrar;
     private JTable tblEquipos;
+    private JButton btnGenerarQR;
+    private final QrService qrService = new QrService();
 
     private final EquipoService equipoService;
     private final TipoEquipoService tipoEquipoService;
@@ -60,6 +67,7 @@ public class EquiposView extends JFrame {
         if (btnActualizar != null) btnActualizar.addActionListener(e -> actualizar());
         if (btnLimpiar != null) btnLimpiar.addActionListener(e -> limpiarFormulario());
         if (btnCerrar != null) btnCerrar.addActionListener(e -> dispose());
+        if (btnGenerarQR != null) btnGenerarQR.addActionListener(e -> generarQR());
 
         if (tblEquipos != null) {
             tblEquipos.addMouseListener(new MouseAdapter() {
@@ -228,4 +236,51 @@ public class EquiposView extends JFrame {
         if (cmbEstado != null) cmbEstado.setSelectedItem(EstadoEquipo.DISPONIBLE);
         if (tblEquipos != null) tblEquipos.clearSelection();
     }
+
+    private void generarQR() {
+        String codigo = txtCodigo != null ? txtCodigo.getText().trim() : "";
+
+        if (idEquipoSeleccionado == null || codigo.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Seleccione un equipo de la tabla para generar su QR.",
+                    "Atención", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            BufferedImage qr = qrService.generarImagen(codigo, 300);
+
+            JPanel panel = new JPanel(new BorderLayout(0, 8));
+            panel.add(new JLabel(new ImageIcon(qr)), BorderLayout.CENTER);
+            JLabel lblCodigo = new JLabel(codigo, SwingConstants.CENTER);
+            lblCodigo.setFont(lblCodigo.getFont().deriveFont(Font.BOLD, 16f));
+            panel.add(lblCodigo, BorderLayout.SOUTH);
+
+            Object[] opciones = {"Guardar PNG", "Cerrar"};
+            int opcion = JOptionPane.showOptionDialog(this, panel, "Código QR del equipo",
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, opciones, opciones[0]);
+
+            if (opcion == 0) {
+                guardarQR(qr, codigo);
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void guardarQR(BufferedImage qr, String codigo) throws Exception {
+        JFileChooser chooser = new JFileChooser(qrService.carpetaQr());
+        chooser.setDialogTitle("Guardar código QR");
+        chooser.setSelectedFile(new File("QR_" + codigo + ".png"));
+
+        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File destino = chooser.getSelectedFile();
+            if (!destino.getName().toLowerCase().endsWith(".png")) {
+                destino = new File(destino.getParentFile(), destino.getName() + ".png");
+            }
+            qrService.guardarPng(qr, destino);
+            JOptionPane.showMessageDialog(this, "QR guardado en:\n" + destino.getAbsolutePath(),
+                    "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
 }
