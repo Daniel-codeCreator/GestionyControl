@@ -64,7 +64,7 @@ public class PrestamoView extends JFrame {
         usuarioService = new UsuarioService();
 
         setTitle("Gestion de Prestamos y Devoluciones - SIGELAB");
-        setSize(1000, 700);
+        setSize(1500, 1200);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
