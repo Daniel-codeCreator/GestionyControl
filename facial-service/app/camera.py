@@ -148,51 +148,110 @@ def _guardar_nativas(nativas: set[tuple[int, int]]) -> None:
 _NATIVAS = _cargar_nativas()
 
 
-def _open(
-        index: int,
-        backend: int,
-        configuration: Settings,
-        forzar_resolucion: bool = True
-) -> tuple[cv2.VideoCapture, bool] | None:
-    usar_nativa = (index, backend) in _NATIVAS
-
+def _abrir_nativo(index: int, backend: int) -> cv2.VideoCapture | None:
+    """Abre la cámara con el formato que el dispositivo entregue por defecto."""
     capture = cv2.VideoCapture(index, backend)
     if not capture.isOpened():
         capture.release()
         return None
+    return capture
 
-    if forzar_resolucion and not usar_nativa:
-        capture.set(cv2.CAP_PROP_FRAME_WIDTH, configuration.camera_width)
-        capture.set(cv2.CAP_PROP_FRAME_HEIGHT, configuration.camera_height)
 
-    usable, mean = _read_usable_frames(capture)
-
-    if not usable and forzar_resolucion and not usar_nativa:
-        # Frames negros con la resolución forzada: reintentamos en modo nativo.
+def _abrir_con_configuracion(
+        index: int,
+        backend: int,
+        configuration: Settings
+) -> cv2.VideoCapture | None:
+    """Abre la cámara forzando el tamaño configurado en el .env."""
+    capture = cv2.VideoCapture(index, backend)
+    if not capture.isOpened():
         capture.release()
-        capture = cv2.VideoCapture(index, backend)
-        if not capture.isOpened():
-            capture.release()
+        return None
+    capture.set(cv2.CAP_PROP_FRAME_WIDTH, configuration.camera_width)
+    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, configuration.camera_height)
+    return capture
+
+
+def _open(
+        index: int,
+        backend: int,
+        configuration: Settings,
+        adaptativo: bool = True
+) -> tuple[cv2.VideoCapture, bool] | None:
+    """Abre la cámara adaptándose al dispositivo.
+
+    1) Se abre en el formato nativo y se comprueba que llegue imagen.
+    2) Si el dispositivo lo permite, se aplica el tamaño configurado en el .env.
+    3) Si ese tamaño rompe la imagen, se vuelve al nativo y se recuerda, para
+       no volver a perder tiempo en las siguientes sesiones.
+    Así funciona con cualquier cámara, sin importar el modelo ni el driver.
+    """
+    ya_sabe_nativa = (index, backend) in _NATIVAS
+
+    if ya_sabe_nativa:
+        capture = _abrir_nativo(index, backend)
+        if capture is None:
             return None
         usable, mean = _read_usable_frames(capture)
         if usable:
-            _NATIVAS.add((index, backend))
-            _guardar_nativas(_NATIVAS)
-            logger.warning(
-                "La camara %s devolvio frames negros a %sx%s con %s; se usa la resolucion nativa %sx%s.",
-                index,
-                configuration.camera_width,
-                configuration.camera_height,
-                backend_name(backend),
-                int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-            )
+            return capture, True
+        capture.release()
+        return None
 
+    capture = _abrir_nativo(index, backend)
+    if capture is None:
+        return None
+
+    usable, mean = _read_usable_frames(capture)
+
+    if usable:
+        if not adaptativo:
+            return capture, True
+
+        # Probamos el tamaño configurado sobre la misma sesión.
+        capture.set(cv2.CAP_PROP_FRAME_WIDTH, configuration.camera_width)
+        capture.set(cv2.CAP_PROP_FRAME_HEIGHT, configuration.camera_height)
+
+        usable_configurado, mean_configurado = _read_usable_frames(capture)
+        if usable_configurado:
+            return capture, True
+
+        # El dispositivo no aguanta ese tamaño: reabrimos en modo nativo.
+        capture.release()
+        capture = _abrir_nativo(index, backend)
+        if capture is None:
+            return None
+
+        usable, mean = _read_usable_frames(capture)
+        if not usable:
+            capture.release()
+            return None
+
+        _NATIVAS.add((index, backend))
+        _guardar_nativas(_NATIVAS)
+        logger.warning(
+            "La camara %s no entrega imagen a %sx%s con %s; se usa su resolucion nativa %sx%s.",
+            index,
+            configuration.camera_width,
+            configuration.camera_height,
+            backend_name(backend),
+            int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+        )
+        return capture, True
+
+    # El modo nativo tampoco dio imagen: probamos el tamaño configurado.
+    capture.release()
+    capture = _abrir_con_configuracion(index, backend, configuration)
+    if capture is None:
+        return None
+
+    usable, mean = _read_usable_frames(capture)
     if not usable:
         capture.release()
         return None
 
-    return capture, usable
+    return capture, True
 
 
 def list_cameras(
