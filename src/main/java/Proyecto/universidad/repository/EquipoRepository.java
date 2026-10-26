@@ -149,43 +149,4 @@ public class EquipoRepository {
             return false;
         }
     }
-
-    public Equipo buscarFichaPorCodigo(String strCodigo) {
-        String sql = "SELECT e.IdEquipo, e.CodigoInventario, e.Nombre, t.Nombre AS TipoNombre, " +
-                "l.Nombre AS LabNombre, e.Estado, e.Marca, e.Modelo, e.NumeroSerie " +
-                "FROM Equipo e " +
-                "INNER JOIN TipoEquipo t ON e.IdTipoEquipo = t.IdTipoEquipo " +
-                "INNER JOIN Laboratorio l ON e.IdLaboratorio = l.IdLaboratorio " +
-                "WHERE e.CodigoInventario = ?";
-
-        try (Connection conn = connection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, strCodigo);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    Equipo eq = new Equipo();
-                    eq.setIdEquipo(rs.getInt("IdEquipo"));
-                    eq.setStrCodigo(rs.getString("CodigoInventario"));
-                    eq.setStrNombre(rs.getString("Nombre"));
-                    eq.setStrNombreTipo(rs.getString("TipoNombre"));
-                    eq.setStrNombreLaboratorio(rs.getString("LabNombre"));
-                    eq.setStrMarca(rs.getString("Marca"));
-                    eq.setStrModelo(rs.getString("Modelo"));
-                    eq.setStrSerie(rs.getString("NumeroSerie"));
-
-                    try {
-                        eq.setEstado(EstadoEquipo.valueOf(rs.getString("Estado").trim().toUpperCase()));
-                    } catch (Exception e) {
-                        eq.setEstado(null);
-                    }
-                    return eq;
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error al buscar la ficha del equipo: " + e.getMessage());
-        }
-        return null;
-    }
 }

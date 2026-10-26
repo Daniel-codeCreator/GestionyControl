@@ -1,6 +1,7 @@
 package Proyecto.universidad.repository;
 
 import Proyecto.universidad.Config.connection;
+import Proyecto.universidad.model.Auditoria;
 import Proyecto.universidad.model.Usuario;
 
 import java.sql.CallableStatement;
@@ -8,7 +9,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -108,9 +110,7 @@ public class UsuarioRepository {
     }
 
     /**
-     * Crea un usuario ejecutando el procedimiento dbo.sp_CrearUsuario.
-     * El procedimiento además registra la auditoría USUARIO_CREADO.
-     * strPassword debe llegar ya cifrada con BCrypt.
+     * Registra un nuevo usuario en el sistema.
      */
     public Usuario crearUsuario(
             String strNombre,
@@ -120,11 +120,21 @@ public class UsuarioRepository {
             String strCorreo,
             int intRol
     ) {
-        String strSql = "{call dbo.sp_CrearUsuario(?, ?, ?, ?, ?, ?, ?, ?)}";
+        String strSql = """
+                INSERT INTO Usuario
+                (
+                    Nombre, Apellido, NombreUsuario,
+                    Contrasena, Correo, IdRol, Estado
+                )
+                VALUES (?, ?, ?, ?, ?, ?, 'ACTIVO')
+                """;
 
         try (
                 Connection conn = connection.getConnection();
-                CallableStatement stmt = conn.prepareCall(strSql)
+                PreparedStatement stmt = conn.prepareStatement(
+                        strSql,
+                        Statement.RETURN_GENERATED_KEYS
+                )
         ) {
             stmt.setString(1, strNombre);
             stmt.setString(2, strApellido);
@@ -132,42 +142,31 @@ public class UsuarioRepository {
             stmt.setString(4, strPassword);
             stmt.setString(5, strCorreo);
             stmt.setInt(6, intRol);
-            stmt.setString(7, "ACTIVO");
-            stmt.registerOutParameter(8, Types.INTEGER);
 
-            stmt.execute();
+            stmt.executeUpdate();
 
-            int intIdUsuario = stmt.getInt(8);
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    Usuario usuario = new Usuario();
 
-            Usuario usuario = new Usuario();
-            usuario.setIdUsuario(intIdUsuario);
-            usuario.setStrNombre(strNombre);
-            usuario.setStrApellido(strApellido);
-            usuario.setStrUsuario(strUsuario);
-            usuario.setStrPassword(strPassword);
-            usuario.setStrCorreo(strCorreo);
-            usuario.setIntRol(intRol);
-            usuario.setStrEstado("ACTIVO");
+                    usuario.setIdUsuario(rs.getInt(1));
+                    usuario.setStrNombre(strNombre);
+                    usuario.setStrApellido(strApellido);
+                    usuario.setStrUsuario(strUsuario);
+                    usuario.setStrPassword(strPassword);
+                    usuario.setStrCorreo(strCorreo);
+                    usuario.setIntRol(intRol);
+                    usuario.setStrEstado("ACTIVO");
 
-            return usuario;
+                    return usuario;
+                }
+            }
 
         } catch (SQLException e) {
-            throw new RuntimeException(mensajeErrorCreacion(e), e);
+            throw new RuntimeException("Error al crear usuario: " + e.getMessage(), e);
         }
-    }
 
-    /**
-     * Convierte los códigos de error del procedimiento en mensajes comprensibles,
-     * evitando mostrar SQLException crudas al usuario.
-     */
-    private String mensajeErrorCreacion(SQLException e) {
-        return switch (e.getErrorCode()) {
-            case 50010 -> "El rol seleccionado no existe o está inactivo.";
-            case 50012 -> "Ya existe un usuario con ese nombre de usuario.";
-            case 50013 -> "Ya existe un usuario con ese correo.";
-            case 2601, 2627 -> "Ya existe un usuario con ese nombre de usuario o correo.";
-            default -> "No se pudo crear el usuario: " + e.getMessage();
-        };
+        return null;
     }
     public Usuario crearUsuarioConSP(String strNombre, String strApellido, String strUsuario,
                                      String strPassword, String strCorreo, int intRol)
@@ -206,6 +205,57 @@ public class UsuarioRepository {
         }
 
         return null;
+    }
+
+    /**
+     * Desactiva lógicamente un usuario (baja lógica: conserva el historial).
+     * Deja la auditoría USUARIO_DESACTIVADO en la misma transacción (RN-18).
+     *
+     * @return true si el usuario estaba ACTIVO y pasó a INACTIVO.
+     */
+    public boolean desactivarUsuario(int intIdUsuario, int intIdUsuarioAccion) {
+        String strSql = "UPDATE Usuario SET Estado = 'INACTIVO' WHERE IdUsuario = ? AND Estado = 'ACTIVO'";
+
+        Connection conn = null;
+        try {
+            conn = connection.getConnection();
+            conn.setAutoCommit(false); // Transacción atómica
+
+            int filas = 0;
+            try (PreparedStatement stmt = conn.prepareStatement(strSql)) {
+                stmt.setInt(1, intIdUsuario);
+                filas = stmt.executeUpdate();
+            }
+
+            if (filas == 0) {
+                conn.rollback();
+                return false;
+            }
+
+            // RN-18: rastro de auditoría de la desactivación
+            new AuditoriaRepository().registrar(conn, new Auditoria(
+                    intIdUsuarioAccion,
+                    LocalDateTime.now(),
+                    "USUARIO_DESACTIVADO",
+                    "Usuario",
+                    intIdUsuario,
+                    "Usuario desactivado (baja lógica), se conserva el historial."
+            ));
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { System.err.println(ex.getMessage()); }
+            }
+            System.err.println("Error al desactivar usuario: " + e.getMessage());
+            return false;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ex) { System.err.println(ex.getMessage()); }
+            }
+        }
     }
 
 }

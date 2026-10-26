@@ -32,7 +32,7 @@ public class LaboratorioView extends JFrame {
         laboratorioService = new LaboratorioService();
 
         setTitle("Gestión de Laboratorios");
-        setSize(800, 600);
+        setSize(1500, 1200);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 

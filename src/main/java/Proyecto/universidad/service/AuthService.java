@@ -6,6 +6,8 @@ import Proyecto.universidad.repository.AuditoriaRepository;
 import Proyecto.universidad.repository.UsuarioRepository;
 import org.mindrot.jbcrypt.BCrypt;
 
+import java.time.LocalDateTime;
+
 public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
@@ -54,34 +56,26 @@ public class AuthService {
     }
 
     public void registrarAuditoriaLoginExitoso(Usuario usuario) {
-        registrarAuditoriaLogin(
-                usuario.getIdUsuario(),
-                "LOGIN_EXITOSO",
-                "Inicio de sesión exitoso con validación facial aprobada para usuario: " + usuario.getUsername()
-        );
+        Auditoria aud = new Auditoria();
+        aud.setIdUsuario(usuario.getIdUsuario());
+        aud.setFechaHora(LocalDateTime.now());
+        aud.setAccion("LOGIN_EXITOSO");
+        aud.setEntidad("Usuario");
+        aud.setIdRegistro(usuario.getIdUsuario());
+        aud.setDescripcion("Inicio de sesión exitoso con validación facial aprobada para usuario: " + usuario.getUsername());
+
+        auditoriaRepository.registrar(aud);
     }
 
     public void registrarAuditoriaLoginFallido(Integer idUsuario, String strUsuario, String motivo) {
-        registrarAuditoriaLogin(
-                idUsuario,
-                "LOGIN_FALLIDO",
-                "Intento de login fallido para '" + strUsuario + "'. Motivo: " + motivo
-        );
-    }
-
-    private void registrarAuditoriaLogin(Integer idUsuario, String accion, String descripcion) {
         Auditoria aud = new Auditoria();
         aud.setIdUsuario(idUsuario);
-        aud.setAccion(accion);
-        aud.setDescripcion(limitarTexto(descripcion, 500));
+        aud.setFechaHora(LocalDateTime.now());
+        aud.setAccion("LOGIN_FALLIDO");
+        aud.setEntidad("Usuario");
+        aud.setIdRegistro(idUsuario);
+        aud.setDescripcion("Intento de login fallido para '" + strUsuario + "'. Motivo: " + motivo);
 
-        auditoriaRepository.registrarLogin(aud);
-    }
-
-    private String limitarTexto(String texto, int maximo) {
-        if (texto == null || texto.length() <= maximo) {
-            return texto;
-        }
-        return texto.substring(0, maximo);
+        auditoriaRepository.registrar(aud);
     }
 }
