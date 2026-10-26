@@ -1,8 +1,11 @@
 package Proyecto.universidad.view;
 
+import Proyecto.universidad.model.Dashboard;
 import Proyecto.universidad.model.Usuario;
+import Proyecto.universidad.service.DashboardService;
 
 import javax.swing.*;
+import java.awt.Color;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
@@ -15,6 +18,21 @@ public class Menu extends JFrame {
     private JButton btnPrestamos;
     private JButton btnMantenimiento;
     private JButton btnCrearUsuario;
+    private JButton btnReportes;
+
+    // Contadores del dashboard
+    private JLabel lblTotalEquipos;
+    private JLabel lblDisponibles;
+    private JLabel lblPrestados;
+    private JLabel lblDanados;
+    private JLabel lblEnMantenimiento;
+    private JLabel lblDeBaja;
+    private JLabel lblPrestamosActivos;
+    private JLabel lblPrestamosVencidos;
+
+    private static final Color COLOR_ALERTA = new Color(192, 0, 0);
+
+    private final DashboardService dashboardService = new DashboardService();
 
     // Atributo para guardar la sesión del usuario autenticado
     private Usuario usuarioLogueado;
@@ -30,7 +48,7 @@ public class Menu extends JFrame {
 
         setTitle("Sistema de Gestión y Control - Menú Principal");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 600);
+        setSize(1000, 650);
         setLocationRelativeTo(null);
         setResizable(false);
 
@@ -38,7 +56,6 @@ public class Menu extends JFrame {
             setContentPane(JpanenPrincipal);
         }
 
-        // Asignación de Listeners para cada módulo
         if (btnLaboratorios != null) {
             btnLaboratorios.addActionListener(e -> abrirLaboratorios());
         }
@@ -56,21 +73,58 @@ public class Menu extends JFrame {
         }
 
         if (btnMantenimiento != null) {
-
             btnMantenimiento.addActionListener(e -> abrirMantenimiento());
         }
 
         if (btnCrearUsuario != null) {
             btnCrearUsuario.addActionListener(e -> abrirPantallaCrearUsuario());
         }
+
+        if (btnReportes != null) {
+            btnReportes.addActionListener(e -> JOptionPane.showMessageDialog(
+                    this, "Módulo de Reportes en construcción."));
+        }
+
+        actualizarDashboard();
     }
 
-    // Oculta el menú (NO lo cierra), abre el módulo y vuelve a mostrar el menú cuando el módulo se cierra
+    // Consulta la BD y muestra las 8 cantidades del dashboard
+    private void actualizarDashboard() {
+        try {
+            Dashboard r = dashboardService.obtenerResumen();
+
+            mostrar(lblTotalEquipos, String.valueOf(r.totalEquipos()), null);
+            mostrar(lblDisponibles, String.valueOf(r.disponibles()), null);
+            mostrar(lblPrestados, String.valueOf(r.prestados()), null);
+            mostrar(lblDanados, String.valueOf(r.danados()), r.danados() > 0 ? COLOR_ALERTA : null);
+            mostrar(lblEnMantenimiento, String.valueOf(r.enMantenimiento()), null);
+            mostrar(lblDeBaja, String.valueOf(r.deBaja()), null);
+            mostrar(lblPrestamosActivos, String.valueOf(r.prestamosActivos()), null);
+            mostrar(lblPrestamosVencidos, String.valueOf(r.prestamosVencidos()),
+                    r.prestamosVencidos() > 0 ? COLOR_ALERTA : null);
+
+        } catch (RuntimeException e) {
+            // Si la BD no responde se muestra "-" para no mostrar ceros falsos
+            for (JLabel lbl : new JLabel[]{lblTotalEquipos, lblDisponibles, lblPrestados, lblDanados,
+                    lblEnMantenimiento, lblDeBaja, lblPrestamosActivos, lblPrestamosVencidos}) {
+                mostrar(lbl, "-", null);
+            }
+        }
+    }
+
+    private void mostrar(JLabel etiqueta, String texto, Color color) {
+        if (etiqueta == null) return;
+        etiqueta.setText(texto);
+        etiqueta.setForeground(color != null ? color : UIManager.getColor("Label.foreground"));
+    }
+
+    // Oculta el menú (NO lo cierra), abre el módulo y, al cerrarse, lo vuelve a mostrar con datos frescos
     private void abrirVentana(JFrame ventana) {
         setVisible(false);
         ventana.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
+                actualizarDashboard();
                 setVisible(true);
             }
         });
@@ -93,8 +147,9 @@ public class Menu extends JFrame {
         abrirVentana(new PrestamoView(usuarioLogueado));
     }
 
-    private void abrirMantenimiento() {abrirVentana(new MantenimientoView(usuarioLogueado));}
-
+    private void abrirMantenimiento() {
+        abrirVentana(new MantenimientoView(usuarioLogueado));
+    }
 
     private void abrirPantallaCrearUsuario() {
         // Valida que el usuario exista y que su IdRol sea 1 (ADMIN)

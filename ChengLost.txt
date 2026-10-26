@@ -44,3 +44,5 @@ Proyecto Final Progra 2
 
 2026-10-25
 --se hace modulo de Manteniminetos
+--Se hace el servicio del QR
+--Se agrega Servicio de Dashboard en el Menu

@@ -31,7 +31,7 @@ public class Login extends JFrame {
 
         setTitle("Inicio de Sesión");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 600);
+        setSize(900, 700);
         setLocationRelativeTo(null);
         setResizable(false);
 
@@ -277,6 +277,10 @@ public class Login extends JFrame {
 
     public JPanel getPanelPrincipal() {
         return panelPrincipal;
+    }
+
+    private void createUIComponents() {
+        // TODO: place custom component creation code here
     }
 
     private record LoginOutcome(Usuario usuario, FacialVerificationResult facial,

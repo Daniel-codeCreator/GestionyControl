@@ -51,7 +51,7 @@ public class EquiposView extends JFrame {
         laboratorioService = new LaboratorioService();
 
         setTitle("Gestión de Equipos");
-        setSize(900, 650);
+        setSize(1500, 1200);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
