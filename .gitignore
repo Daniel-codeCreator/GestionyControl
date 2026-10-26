@@ -37,6 +37,7 @@ build/
 venv/
 __pycache__/
 *.py[cod]
+facial-service/tmp/*.json
 
 ### VS Code ###
 .vscode/

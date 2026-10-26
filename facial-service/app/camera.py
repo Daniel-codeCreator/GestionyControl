@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import platform
 import re
@@ -7,6 +8,7 @@ import subprocess
 import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Iterator
 
 import cv2
@@ -101,7 +103,7 @@ def _candidate_indices(configuration: Settings, names: list[str]) -> list[tuple[
     return sorted(candidates, key=lambda item: _name_score(item[1], configuration)[0])
 
 
-def _read_usable_frames(capture: cv2.VideoCapture, attempts: int = 6) -> tuple[bool, float]:
+def _read_usable_frames(capture: cv2.VideoCapture, attempts: int = 3) -> tuple[bool, float]:
     """Lee unos frames de calentamiento y dice si traen imagen real.
 
     Algunas camaras (sobre todo UVC con DirectShow) entregan el buffer vacio
@@ -119,25 +121,54 @@ def _read_usable_frames(capture: cv2.VideoCapture, attempts: int = 6) -> tuple[b
     return False, mean
 
 
+# Camaras que devolvieron frames negros con la resolucion forzada.
+# Se guardan en disco porque cada sesion facial corre en un proceso nuevo.
+_MARCADOR_NATIVA = Path(__file__).resolve().parents[1] / "tmp" / "camara_resolucion_nativa.json"
+
+
+def _cargar_nativas() -> set[tuple[int, int]]:
+    try:
+        datos = json.loads(_MARCADOR_NATIVA.read_text(encoding="utf-8"))
+        return {(int(indice), int(backend)) for indice, backend in datos.get("nativas", [])}
+    except (OSError, ValueError, TypeError, AttributeError):
+        return set()
+
+
+def _guardar_nativas(nativas: set[tuple[int, int]]) -> None:
+    try:
+        _MARCADOR_NATIVA.parent.mkdir(parents=True, exist_ok=True)
+        _MARCADOR_NATIVA.write_text(
+            json.dumps({"nativas": [[indice, backend] for indice, backend in sorted(nativas)]}),
+            encoding="utf-8",
+        )
+    except OSError:
+        logger.warning("No se pudo guardar la preferencia de resolución de la cámara.")
+
+
+_NATIVAS = _cargar_nativas()
+
+
 def _open(
         index: int,
         backend: int,
         configuration: Settings,
         forzar_resolucion: bool = True
 ) -> tuple[cv2.VideoCapture, bool] | None:
+    usar_nativa = (index, backend) in _NATIVAS
+
     capture = cv2.VideoCapture(index, backend)
     if not capture.isOpened():
         capture.release()
         return None
 
-    if forzar_resolucion:
+    if forzar_resolucion and not usar_nativa:
         capture.set(cv2.CAP_PROP_FRAME_WIDTH, configuration.camera_width)
         capture.set(cv2.CAP_PROP_FRAME_HEIGHT, configuration.camera_height)
 
     usable, mean = _read_usable_frames(capture)
 
-    if not usable and forzar_resolucion:
-        # Frames negros con la resolucion forzada: reintentamos en modo nativo.
+    if not usable and forzar_resolucion and not usar_nativa:
+        # Frames negros con la resolución forzada: reintentamos en modo nativo.
         capture.release()
         capture = cv2.VideoCapture(index, backend)
         if not capture.isOpened():
@@ -145,6 +176,8 @@ def _open(
             return None
         usable, mean = _read_usable_frames(capture)
         if usable:
+            _NATIVAS.add((index, backend))
+            _guardar_nativas(_NATIVAS)
             logger.warning(
                 "La camara %s devolvio frames negros a %sx%s con %s; se usa la resolucion nativa %sx%s.",
                 index,
@@ -162,7 +195,11 @@ def _open(
     return capture, usable
 
 
-def list_cameras(configuration: Settings = settings, max_indices: int = 8) -> list[CameraInfo]:
+def list_cameras(
+        configuration: Settings = settings,
+        max_indices: int = 8,
+        detener_en_el_primero: bool = False
+) -> list[CameraInfo]:
     names = mac_camera_names()
     indices = _candidate_indices(configuration, names)
     if configuration.camera_index is None:
@@ -182,13 +219,18 @@ def list_cameras(configuration: Settings = settings, max_indices: int = 8) -> li
             _, reason = _name_score(name, configuration)
             if configuration.camera_index is not None:
                 reason = "CAMERA_INDEX explícito"
-            found.append(CameraInfo(index, name, backend, actual_backend, can_read, reason))
+            info = CameraInfo(index, name, backend, actual_backend, can_read, reason)
+            found.append(info)
+            # No hace falta seguir escaneando índices: la primera cámara
+            # utilizable es la que se usará y cada apertura extra tarda segundos.
+            if detener_en_el_primero and can_read:
+                return found
             break
     return found
 
 
 def select_camera(configuration: Settings = settings) -> CameraInfo:
-    cameras = list_cameras(configuration)
+    cameras = list_cameras(configuration, detener_en_el_primero=True)
     usable = [camera for camera in cameras if camera.can_read_frame]
     if usable:
         selected = usable[0]
