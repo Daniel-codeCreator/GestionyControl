@@ -93,7 +93,7 @@ public class Menu extends JFrame {
         abrirVentana(new PrestamoView(usuarioLogueado));
     }
 
-    private void abrirMantenimiento() {abrirVentana(new MantenimientoView());}
+    private void abrirMantenimiento() {abrirVentana(new MantenimientoView(usuarioLogueado));}
 
 
     private void abrirPantallaCrearUsuario() {
