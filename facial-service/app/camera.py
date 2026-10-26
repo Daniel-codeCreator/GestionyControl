@@ -101,18 +101,65 @@ def _candidate_indices(configuration: Settings, names: list[str]) -> list[tuple[
     return sorted(candidates, key=lambda item: _name_score(item[1], configuration)[0])
 
 
-def _open(index: int, backend: int, configuration: Settings) -> tuple[cv2.VideoCapture, bool] | None:
+def _read_usable_frames(capture: cv2.VideoCapture, attempts: int = 6) -> tuple[bool, float]:
+    """Lee unos frames de calentamiento y dice si traen imagen real.
+
+    Algunas camaras (sobre todo UVC con DirectShow) entregan el buffer vacio
+    cuando se fuerza una resolucion que el driver no soporta de verdad: el
+    frame llega completamente negro aunque la camara este funcionando.
+    """
+    mean = 0.0
+    for _ in range(attempts):
+        ok, frame = capture.read()
+        if not ok or frame is None:
+            return False, 0.0
+        mean = float(frame.mean())
+        if mean >= 3.0:
+            return True, mean
+    return False, mean
+
+
+def _open(
+        index: int,
+        backend: int,
+        configuration: Settings,
+        forzar_resolucion: bool = True
+) -> tuple[cv2.VideoCapture, bool] | None:
     capture = cv2.VideoCapture(index, backend)
-    capture.set(cv2.CAP_PROP_FRAME_WIDTH, configuration.camera_width)
-    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, configuration.camera_height)
     if not capture.isOpened():
         capture.release()
         return None
-    ok, frame = capture.read()
-    if not ok or frame is None:
+
+    if forzar_resolucion:
+        capture.set(cv2.CAP_PROP_FRAME_WIDTH, configuration.camera_width)
+        capture.set(cv2.CAP_PROP_FRAME_HEIGHT, configuration.camera_height)
+
+    usable, mean = _read_usable_frames(capture)
+
+    if not usable and forzar_resolucion:
+        # Frames negros con la resolucion forzada: reintentamos en modo nativo.
+        capture.release()
+        capture = cv2.VideoCapture(index, backend)
+        if not capture.isOpened():
+            capture.release()
+            return None
+        usable, mean = _read_usable_frames(capture)
+        if usable:
+            logger.warning(
+                "La camara %s devolvio frames negros a %sx%s con %s; se usa la resolucion nativa %sx%s.",
+                index,
+                configuration.camera_width,
+                configuration.camera_height,
+                backend_name(backend),
+                int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+            )
+
+    if not usable:
         capture.release()
         return None
-    return capture, ok
+
+    return capture, usable
 
 
 def list_cameras(configuration: Settings = settings, max_indices: int = 8) -> list[CameraInfo]:

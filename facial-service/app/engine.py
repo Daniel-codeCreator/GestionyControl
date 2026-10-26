@@ -158,6 +158,11 @@ class FaceEngine:
                 selected_camera.name,
                 selected_camera.backend_name,
             )
+            # El plazo de captura empieza cuando la cámara ya está abierta:
+            # abrirla puede tardar varios segundos y no debe consumir el tiempo
+            # que el usuario tiene para colocar su rostro.
+            started = time.monotonic()
+            phase_started = started
             try:
                 self._countdown(capture, window, title, user_label)
                 while time.monotonic() - started <= timeout_seconds:
