@@ -8,9 +8,9 @@ public class connection {
 
     private static final String URL = configuracion(
             "universidad.db.url", "DB_URL",
-            "jdbc:sqlserver://localhost:1433;databaseName=PROYCPROGRA2;encrypt=true;trustServerCertificate=true;sendTimeAsDatetime=false;");
+            "jdbc:sqlserver://progra2.parqueobelen.site:1434;databaseName=PROYCPROGRA2;encrypt=true;trustServerCertificate=true;sendTimeAsDatetime=false;");
     private static final String USER = configuracion("universidad.db.user", "DB_USER", "sa");
-    private static final String PASSWORD = configuracion("universidad.db.password", "DB_PASSWORD", "Grupo4Progra1!");
+    private static final String PASSWORD = configuracion("universidad.db.password", "DB_PASSWORD", "Programacion2*2024#");
 
     private connection() {
     }
