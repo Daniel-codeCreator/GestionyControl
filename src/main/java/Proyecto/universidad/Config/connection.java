@@ -1,92 +1,106 @@
 package Proyecto.universidad.Config;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class connection {
 
-    // Posiciones dentro del arreglo DATOS
-    private static final int HOST = 0;
-    private static final int PORT = 1;
-    private static final int BASE_DATOS = 2;
-    private static final int USUARIO = 3;
-    private static final int CONTRASENA = 4;
+    private static String url;
+    private static String user;
+    private static String password;
 
-    /**
-     * Datos de conexión: { HOST, PORT, BASE DE DATOS, USUARIO, CONTRASEÑA }.
-     *
-     * Se pueden sobrescribir sin recompilar con:
-     *   -Duniversidad.db.host / -Duniversidad.db.port / -Duniversidad.db.name
-     *   -Duniversidad.db.user / -Duniversidad.db.password
-     * o con las variables de entorno DB_HOST / DB_PORT / DB_NAME / DB_USER / DB_PASSWORD.
-     */
-    private static final String[] DATOS = {
-            "progra2.parqueobelen.site",
-            "1434",
-            "PROYCPROGRA2",
-            "sa",
-            "Programacion2*2024#"
-    };
-
-    private static final String URL = "jdbc:sqlserver://" + host() + ":" + port()
-            + ";databaseName=" + baseDatos()
-            + ";encrypt=true;trustServerCertificate=true;sendTimeAsDatetime=false;";
-
-    private connection() {
+    static {
+        cargarConfiguracionXml();
     }
 
-    public static Connection getConnection()
-            throws SQLException {
+    private static void cargarConfiguracionXml() {
+        InputStream is = null;
+        try {
+            // 1. Buscar en la raiz del classpath (/conexion.xml en src/main/resources)
+            is = connection.class.getResourceAsStream("/conexion.xml");
 
-        return DriverManager.getConnection(
-                URL,
-                usuario(),
-                contrasena()
-        );
-    }
+            // 2. Buscar dentro del paquete Config
+            if (is == null) {
+                is = connection.class.getResourceAsStream("/Proyecto/universidad/Config/conexion.xml");
+            }
 
-    public static String url() {
-        return URL;
-    }
+            // 3. Buscar como archivo fisico en el sistema
+            if (is == null) {
+                File file = new File("src/main/resources/conexion.xml");
+                if (!file.exists()) {
+                    file = new File("src/main/java/Proyecto/universidad/Config/conexion.xml");
+                }
+                if (file.exists()) {
+                    is = new FileInputStream(file);
+                }
+            }
 
-    public static String host() {
-        return valor("universidad.db.host", "DB_HOST", HOST);
-    }
+            if (is == null) {
+                throw new RuntimeException("No se encontro el archivo conexion.xml en ninguna ubicacion conocida.");
+            }
 
-    public static String port() {
-        return valor("universidad.db.port", "DB_PORT", PORT);
-    }
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            Document doc = db.parse(is);
+            doc.getDocumentElement().normalize();
 
-    public static String baseDatos() {
-        return valor("universidad.db.name", "DB_NAME", BASE_DATOS);
-    }
+            Element dbElement = (Element) doc.getElementsByTagName("db").item(0);
 
-    public static String usuario() {
-        return valor("universidad.db.user", "DB_USER", USUARIO);
-    }
+            String host = dbElement.getElementsByTagName("host").item(0).getTextContent().trim();
+            String port = dbElement.getElementsByTagName("port").item(0).getTextContent().trim();
+            String database = dbElement.getElementsByTagName("database").item(0).getTextContent().trim();
+            user = dbElement.getElementsByTagName("user").item(0).getTextContent().trim();
+            password = dbElement.getElementsByTagName("password").item(0).getTextContent().trim();
 
-    public static String contrasena() {
-        return valor("universidad.db.password", "DB_PASSWORD", CONTRASENA);
-    }
+            url = String.format("jdbc:sqlserver://%s:%s;databaseName=%s;encrypt=false;trustServerCertificate=true;", host, port, database);
 
-    /**
-     * Muestra la configuración efectiva sin exponer la contraseña.
-     */
-    public static String descripcion() {
-        return "host=" + host() + " | port=" + port() + " | base=" + baseDatos()
-                + " | user=" + usuario()
-                + " | password=" + (contrasena().isEmpty() ? "(vacia)" : "********");
-    }
+            System.out.println("Configuracion de BD cargada exitosamente desde XML -> " + host + ":" + port);
 
-    private static String valor(String strPropiedad, String strVariable, int intPosicion) {
-        String configurado = System.getProperty(strPropiedad);
-        if (configurado == null || configurado.isBlank()) {
-            configurado = System.getenv(strVariable);
+        } catch (Exception e) {
+            System.err.println("Error al leer conexion.xml: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (is != null) {
+                try { is.close(); } catch (Exception ignored) {}
+            }
         }
-        if (configurado == null || configurado.isBlank()) {
-            configurado = DATOS[intPosicion];
+
+        sincronizarEnvPython();
+    }
+
+    private static void sincronizarEnvPython() {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("python", "facial-service/scripts/configure_from_java.py");
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            process.waitFor();
+        } catch (Exception e) {
+            // Si el entorno no tiene python global, intenta con py
+            try {
+                ProcessBuilder pbPy = new ProcessBuilder("py", "facial-service/scripts/configure_from_java.py");
+                pbPy.start();
+            } catch (Exception ignored) {}
         }
-        return configurado;
+    }
+
+    public static Connection getConnection() throws SQLException {
+        if (url == null || url.isBlank()) {
+            throw new SQLException("La URL de conexion no se pudo inicializar. Verifique el archivo conexion.xml.");
+        }
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            return DriverManager.getConnection(url, user, password);
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("Driver JDBC de SQL Server no encontrado: " + e.getMessage());
+        }
     }
 }

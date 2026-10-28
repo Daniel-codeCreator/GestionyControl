@@ -13,6 +13,9 @@ import re
 import secrets
 import subprocess
 from pathlib import Path
+import os
+import re
+import xml.etree.ElementTree as ET
 
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
@@ -87,6 +90,67 @@ def _valid_key(value: str | None) -> bool:
     except Exception:
         return False
 
+
+def sync_env_from_xml():
+    # Rutas posibles del conexion.xml
+    xml_paths = [
+        os.path.join("src", "main", "resources", "conexion.xml"),
+        os.path.join("src", "main", "java", "Proyecto", "universidad", "Config", "conexion.xml"),
+        "conexion.xml"
+    ]
+
+    xml_file = None
+    for path in xml_paths:
+        if os.path.exists(path):
+            xml_file = path
+            break
+
+    if not xml_file:
+        print("[sync_env] No se encontro conexion.xml. Manteniendo .env actual.")
+        return
+
+    try:
+        tree = ET.parse(xml_file)
+        root = tree.getroot()
+        db_elem = root.find("db")
+
+        if db_elem is None:
+            return
+
+        host = db_elem.find("host").text.strip()
+        port = db_elem.find("port").text.strip()
+        database = db_elem.find("database").text.strip()
+        user = db_elem.find("user").text.strip()
+        password = db_elem.find("password").text.strip()
+
+        env_path = os.path.join("facial-service", ".env")
+        if not os.path.exists(env_path):
+            env_path = ".env"
+
+        if not os.path.exists(env_path):
+            print("[sync_env] Archivo .env no encontrado.")
+            return
+
+        with open(env_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Reemplazar variables manteniendo el resto de configuraciones faciales intactas
+        content = re.sub(r"^DB_HOST=.*", f"DB_HOST={host}", content, flags=re.MULTILINE)
+        content = re.sub(r"^DB_PORT=.*", f"DB_PORT={port}", content, flags=re.MULTILINE)
+        content = re.sub(r"^DB_NAME=.*", f"DB_NAME={database}", content, flags=re.MULTILINE)
+        content = re.sub(r"^DB_USER=.*", f"DB_USER={user}", content, flags=re.MULTILINE)
+        content = re.sub(r"^DB_PASSWORD=.*", f"DB_PASSWORD={password}", content, flags=re.MULTILINE)
+
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        print(f"[sync_env] .env actualizado exitosamente con la BD de conexion.xml ({host}:{port})")
+
+    except Exception as e:
+        print(f"[sync_env] Error al sincronizar .env desde XML: {e}")
+
+if __name__ == "__main__":
+    sync_env_from_xml()
 
 def _read_values(text: str) -> dict[str, str]:
     values: dict[str, str] = {}

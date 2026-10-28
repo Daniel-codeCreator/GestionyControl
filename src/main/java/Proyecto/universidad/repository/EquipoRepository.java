@@ -150,6 +150,21 @@ public class EquipoRepository {
         }
     }
 
+    public String obtenerSiguienteCodigo() {
+        String sql = "SELECT ISNULL(MAX(CAST(RIGHT(CodigoInventario, 5) AS INT)), 0) + 1 FROM Equipo WHERE CodigoInventario LIKE 'EQP%'";
+        try (Connection conn = connection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                int siguiente = rs.getInt(1);
+                return String.format("EQP%05d", siguiente);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al obtener siguiente código de equipo: " + e.getMessage());
+        }
+        return "EQP00001"; // Valor por defecto si la tabla está vacía
+    }
+
     public Equipo buscarFichaPorCodigo(String strCodigo) {
         String sql = "SELECT e.IdEquipo, e.CodigoInventario, e.Nombre, t.Nombre AS TipoNombre, " +
                 "l.Nombre AS LabNombre, e.Estado, e.Marca, e.Modelo, e.NumeroSerie " +

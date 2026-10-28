@@ -81,8 +81,7 @@ public class Menu extends JFrame {
         }
 
         if (btnReportes != null) {
-            btnReportes.addActionListener(e -> JOptionPane.showMessageDialog(
-                    this, "Módulo de Reportes en construcción."));
+            btnReportes.addActionListener(e -> abrirReportes());
         }
 
         actualizarDashboard();
@@ -163,6 +162,10 @@ public class Menu extends JFrame {
                     JOptionPane.WARNING_MESSAGE
             );
         }
+    }
+
+    private void abrirReportes() {
+        abrirVentana(new ReportesView());
     }
 
     public JPanel getJpanenPrincipal() {

@@ -9,9 +9,9 @@ import Proyecto.universidad.service.EquipoService;
 import Proyecto.universidad.service.PrestamoService;
 import Proyecto.universidad.service.UsuarioService;
 import Proyecto.universidad.service.QrService;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -24,7 +24,7 @@ public class PrestamoView extends JFrame {
     // Componentes mapeados desde PrestamoView.form
     private JPanel panelPrincipal;
     private JComboBox<Usuario> cmbUsuario;
-    private JComboBox<Equipo> cmbEquipo; // ya no se usa: se oculta (puede borrarse en el diseñador)
+    private JComboBox<Equipo> cmbEquipo;
     private JSpinner spnFechaDevolucion;
     private JTextField txtObservaciones;
     private JButton btnRegistrarPrestamo;
@@ -36,7 +36,6 @@ public class PrestamoView extends JFrame {
     private JButton btnEscanearQR;
     private final QrService qrService = new QrService();
 
-    // La tabla grande ahora muestra los equipos DISPONIBLES (selección múltiple)
     private JButton btnAgregarCarrito;
     private JButton btnQuitarCarrito;
     private JTable tblCarrito;
@@ -52,8 +51,6 @@ public class PrestamoView extends JFrame {
     private Integer idPrestamoSeleccionado;
     private Integer idEquipoSeleccionado;
 
-
-    // Usuario con sesión iniciada: es quien REGISTRA el préstamo y RECIBE la devolución
     private final Usuario usuarioLogueado;
 
     public PrestamoView(Usuario usuarioLogueado) {
@@ -63,8 +60,9 @@ public class PrestamoView extends JFrame {
         equipoService = new EquipoService();
         usuarioService = new UsuarioService();
 
-        setTitle("Gestion de Prestamos y Devoluciones - SIGELAB");
-        setSize(1500, 1200);
+        setTitle("Gestión de Préstamos y Devoluciones - SIGELAB");
+        setSize(1000, 680);
+        setMinimumSize(new java.awt.Dimension(900, 600));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -99,7 +97,6 @@ public class PrestamoView extends JFrame {
             cmbCondicionDevolucion.addItem("DANADO");
         }
 
-        // El combo de equipo ya no se usa
         if (cmbEquipo != null) cmbEquipo.setVisible(false);
 
         if (btnAgregarCarrito != null) btnAgregarCarrito.setText("Seleccionar todos");
@@ -108,7 +105,6 @@ public class PrestamoView extends JFrame {
 
     private void configurarSpinnerFecha() {
         if (spnFechaDevolucion != null) {
-            // No permite fechas anteriores a hoy
             SpinnerDateModel dateModel = new SpinnerDateModel(
                     fechaSugerida(), inicioDeHoy(), null, Calendar.DAY_OF_MONTH);
             spnFechaDevolucion.setModel(dateModel);
@@ -159,12 +155,6 @@ public class PrestamoView extends JFrame {
         if (tblCarrito != null) {
             tblCarrito.setModel(tableModelDisponibles);
             tblCarrito.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-
-            // Título sobre la tabla
-            if (tblCarrito.getParent() != null && tblCarrito.getParent().getParent() instanceof JScrollPane sp) {
-                sp.setBorder(BorderFactory.createTitledBorder(
-                        "Equipos disponibles (Ctrl + clic para elegir varios)"));
-            }
         }
     }
 
@@ -197,7 +187,6 @@ public class PrestamoView extends JFrame {
     }
 
     private void registrarPrestamo() {
-        // Observaciones obligatorias
         String obs = txtObservaciones != null ? txtObservaciones.getText().trim() : "";
         if (obs.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Las observaciones del préstamo son obligatorias.",
@@ -206,7 +195,6 @@ public class PrestamoView extends JFrame {
             return;
         }
 
-        // Equipos elegidos en la tabla
         int[] filas = tblCarrito.getSelectedRows();
         if (filas.length == 0) {
             JOptionPane.showMessageDialog(this, "Seleccione al menos un equipo de la tabla de equipos disponibles.",
@@ -224,14 +212,12 @@ public class PrestamoView extends JFrame {
         }
 
         try {
-            // El combo es quien SOLICITA el préstamo; quien REGISTRA es el usuario logueado
             Usuario solicitanteSel = (Usuario) cmbUsuario.getSelectedItem();
             String solicitante = solicitanteSel != null
                     ? solicitanteSel.getStrNombre() + " " + solicitanteSel.getStrApellido()
                     : "";
             Integer idUsuarioRegistra = usuarioLogueado != null ? usuarioLogueado.getIdUsuario() : null;
 
-            // La devolución se espera hasta el final del día elegido
             Calendar cal = Calendar.getInstance();
             cal.setTime((Date) spnFechaDevolucion.getValue());
             cal.set(Calendar.HOUR_OF_DAY, 23);
@@ -306,7 +292,6 @@ public class PrestamoView extends JFrame {
         if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
         try {
-            // Solo identifica el equipo en la BD: no cambia ningún estado (RN-19)
             Equipo eq = qrService.identificarEquipo(chooser.getSelectedFile());
             String ficha = construirFicha(eq);
 
