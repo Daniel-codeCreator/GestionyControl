@@ -1,0 +1,45 @@
+SIGELAB - Sistema de Gestion y Control de Laboratorios Universitarios
+================================================================
+
+1. REQUISITOS
+   - Java 21 o superior (https://adoptium.net)
+   - Python 3.11 o 3.12 (para el servicio de reconocimiento facial)
+   - Microsoft ODBC Driver 18 for SQL Server
+   - Camara web (solo para el reconocimiento facial)
+
+2. ESTRUCTURA DE CARPETAS
+   dist\
+     SIGELAB.jar          -> la aplicacion (Java Swing)
+     conexion.xml         -> configuracion de la base de datos (editable sin recompilar)
+     lib\                 -> librerias (JDBC, BCrypt, ZXing, JCalendar)
+     facial-service\      -> servicio de reconocimiento facial (Python/FastAPI)
+     ejecutar.bat         -> inicia todo
+     LEEME.txt            -> este archivo
+
+3. PRIMERA EJECUCION
+   Doble clic en ejecutar.bat.
+   La primera vez prepara el entorno de Python del servicio facial
+   (descarga insightface, opencv, onnxruntime; puede tardar varios minutos).
+
+4. BASE DE DATOS
+   La configuracion esta en conexion.xml:
+     <db>
+       <host>...</host>
+       <port>...</port>
+       <database>...</database>
+       <user>...</user>
+       <password>...</password>
+     </db>
+   Para usar otra base, edite ese archivo y vuelva a ejecutar.
+
+5. RECONOCIMIENTO FACIAL
+   El servicio facial corre en http://127.0.0.1:8765 y la aplicacion lo
+   arranca solo. Para registrar el rostro de un usuario:
+     cd facial-service
+     .venv\Scripts\python.exe -m scripts.enroll_user --user-id 1
+   (tambien: .\enroll-user.ps1 1)
+
+6. DIAGNOSTICO
+   cd facial-service
+   .venv\Scripts\python.exe -m scripts.doctor
+   .venv\Scripts\python.exe -m scripts.health_check

@@ -35,7 +35,10 @@ public class connection {
 
             // 3. Buscar como archivo fisico en el sistema
             if (is == null) {
-                File file = new File("src/main/resources/conexion.xml");
+                File file = new File("conexion.xml");
+                if (!file.exists()) {
+                    file = new File("src/main/resources/conexion.xml");
+                }
                 if (!file.exists()) {
                     file = new File("src/main/java/Proyecto/universidad/Config/conexion.xml");
                 }
