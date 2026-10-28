@@ -1,7 +1,13 @@
 # =====================================================================
-#  SIGELAB - Generador de la distribucion ejecutable
-#  Crea:  dist\SIGELAB.jar  +  dist\lib\*.jar  +  dist\facial-service\
-#         dist\ejecutar.bat  +  dist\LEEME.txt  +  dist\SIGELAB.zip
+#  SIGELAB - Generador de la distribucion ejecutable en publicshell\
+#
+#  Crea:  publicshell\SIGELAB.jar
+#         publicshell\lib\*.jar
+#         publicshell\conexion.xml
+#         publicshell\facial-service\   (incluye el entorno .venv ya listo)
+#         publicshell\ejecutar.bat
+#         publicshell\LEEME.txt
+#         publicshell\SIGELAB.zip
 #
 #  Uso:  powershell -ExecutionPolicy Bypass -File build-dist.ps1
 #  (no requiere Maven: usa el JDK 21 con javac + jar)
@@ -14,7 +20,7 @@ $src       = Join-Path $raiz "src\main\java"
 $resources = Join-Path $raiz "src\main\resources"
 $facial    = Join-Path $raiz "facial-service"
 $build     = Join-Path $raiz "build"
-$dist      = Join-Path $raiz "dist"
+$destino   = Join-Path $raiz "publicshell"
 $m2        = Join-Path $env:USERPROFILE ".m2\repository"
 
 # Localiza el JDK 21 (javac / jar) aunque no esten en el PATH
@@ -41,14 +47,14 @@ function Resolver-Herramienta([string]$nombre) {
 $javac = Resolver-Herramienta "javac"
 $jar   = Resolver-Herramienta "jar"
 
-Write-Host "[1/6] Limpiando build y dist..." -ForegroundColor Cyan
+Write-Host "[1/7] Limpiando build y publicshell..." -ForegroundColor Cyan
 Remove-Item -Recurse -Force $build -ErrorAction SilentlyContinue
-Remove-Item -Recurse -Force $dist -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force $destino -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $build | Out-Null
-New-Item -ItemType Directory -Force $dist | Out-Null
-New-Item -ItemType Directory -Force (Join-Path $dist "lib") | Out-Null
+New-Item -ItemType Directory -Force $destino | Out-Null
+New-Item -ItemType Directory -Force (Join-Path $destino "lib") | Out-Null
 
-Write-Host "[2/6] Compilando el proyecto (Java 21)..." -ForegroundColor Cyan
+Write-Host "[2/7] Compilando el proyecto (Java 21)..." -ForegroundColor Cyan
 $dependencias = @(
     (Join-Path $m2 "com\microsoft\sqlserver\mssql-jdbc\13.4.0.jre11\mssql-jdbc-13.4.0.jre11.jar"),
     (Join-Path $m2 "org\mindrot\jbcrypt\0.4\jbcrypt-0.4.jar"),
@@ -71,22 +77,23 @@ $fuentes = Get-ChildItem $src -Recurse -Filter *.java | Select-Object -ExpandPro
 & $javac -encoding UTF-8 --release 21 -cp $cp -d (Join-Path $build "classes") $fuentes
 if ($LASTEXITCODE -ne 0) { throw "La compilacion fallo." }
 
-Write-Host "[3/6] Copiando recursos (conexion.xml)..." -ForegroundColor Cyan
+Write-Host "[3/7] Empaquetando SIGELAB.jar..." -ForegroundColor Cyan
 if (Test-Path $resources) {
     Copy-Item (Join-Path $resources "*") (Join-Path $build "classes") -Recurse -Force
 }
-
-Write-Host "[4/6] Empaquetando SIGELAB.jar..." -ForegroundColor Cyan
-& $jar --create --file (Join-Path $dist "SIGELAB.jar") --main-class Proyecto.universidad.main -C (Join-Path $build "classes") .
+& $jar --create --file (Join-Path $destino "SIGELAB.jar") --main-class Proyecto.universidad.main -C (Join-Path $build "classes") .
 if ($LASTEXITCODE -ne 0) { throw "No se pudo crear el JAR." }
-Copy-Item (Join-Path $resources "conexion.xml") $dist -Force
 
-Write-Host "[5/6] Copiando librerias en lib\ y el servicio facial..." -ForegroundColor Cyan
+# La configuracion viaja tambien suelta: se puede editar sin recompilar el JAR.
+Copy-Item (Join-Path $resources "conexion.xml") $destino -Force
+
+Write-Host "[4/7] Copiando librerias en lib\..." -ForegroundColor Cyan
 foreach ($dep in $dependencias) {
-    Copy-Item $dep (Join-Path $dist "lib") -Force
+    Copy-Item $dep (Join-Path $destino "lib") -Force
 }
 
-$destinoFacial = Join-Path $dist "facial-service"
+Write-Host "[5/7] Copiando el programa Python (facial-service)..." -ForegroundColor Cyan
+$destinoFacial = Join-Path $destino "facial-service"
 New-Item -ItemType Directory -Force $destinoFacial | Out-Null
 foreach ($carpeta in @("app", "scripts", "sql", "tests")) {
     Copy-Item (Join-Path $facial $carpeta) $destinoFacial -Recurse -Force
@@ -100,16 +107,51 @@ foreach ($archivo in @("requirements.txt", "pytest.ini", "README.md", ".env", ".
 }
 Get-ChildItem $destinoFacial -Recurse -Directory -Filter "__pycache__" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
-Write-Host "[6/6] Copiando los scripts de ejecucion y comprimiendo..." -ForegroundColor Cyan
-Copy-Item (Join-Path $raiz "packaging\iniciar-facial.bat") $destinoFacial -Force
-Copy-Item (Join-Path $raiz "packaging\ejecutar.bat") $dist -Force
-Copy-Item (Join-Path $raiz "packaging\LEEME.txt") $dist -Force
+Write-Host "[6/7] Copiando el entorno virtual de Python (para que el reconocimiento facial funcione de inmediato)..." -ForegroundColor Cyan
+$venvOrigen = Join-Path $facial ".venv"
+if (Test-Path (Join-Path $venvOrigen "Scripts\python.exe")) {
+    Write-Host "      copiando .venv (puede tardar un minuto)..." -ForegroundColor DarkGray
+    robocopy $venvOrigen (Join-Path $destinoFacial ".venv") /E /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "No se pudo copiar el entorno virtual de Python." }
+    Write-Host "      entorno virtual copiado" -ForegroundColor Green
+} else {
+    Write-Host "      no hay .venv en facial-service: se creara con setup-facial.ps1 al ejecutar" -ForegroundColor Yellow
+}
 
-$zip = Join-Path $dist "SIGELAB.zip"
+Write-Host "[7/7] Escribiendo los lanzadores y comprimiendo..." -ForegroundColor Cyan
+Copy-Item (Join-Path $raiz "packaging\iniciar-facial.bat") $destinoFacial -Force
+Copy-Item (Join-Path $raiz "packaging\ejecutar.bat") $destino -Force
+Copy-Item (Join-Path $raiz "packaging\LEEME.txt") $destino -Force
+
+# El ZIP NO incluye el entorno virtual de Python (pesa ~700 MB): el lanzador
+# lo recrea con setup-facial.ps1 la primera vez.
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip = Join-Path $destino "SIGELAB.zip"
 Remove-Item $zip -Force -ErrorAction SilentlyContinue
-Compress-Archive -Path (Join-Path $dist "*") -DestinationPath $zip -Force
+$excluir = @("*\.venv\*", "*\__pycache__\*", "*\tmp\*", "*\.pytest_cache\*")
+
+$archivoZip = [System.IO.Compression.ZipFile]::Open($zip, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+    $archivos = Get-ChildItem $destino -Recurse -File | Where-Object {
+        $relativo = $_.FullName.Substring($destino.Length + 1)
+        $coincide = $false
+        foreach ($patron in $excluir) {
+            if ($relativo -like $patron) { $coincide = $true; break }
+        }
+        -not $coincide
+    }
+    foreach ($archivo in $archivos) {
+        if ($archivo.FullName -eq $zip) { continue }
+        $relativo = $archivo.FullName.Substring($destino.Length + 1)
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+            $archivoZip, $archivo.FullName, $relativo, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    }
+} finally {
+    $archivoZip.Dispose()
+}
 
 Write-Host ""
-Write-Host "Distribucion lista en: $dist" -ForegroundColor Green
-Get-ChildItem $dist | Select-Object Name, Length | Format-Table -AutoSize
-Write-Host "Lanzador: dist\ejecutar.bat" -ForegroundColor Green
+Write-Host "Distribucion lista en: $destino" -ForegroundColor Green
+Get-ChildItem $destino | Select-Object Name, Length | Format-Table -AutoSize
+Write-Host "Para ejecutar:  publicshell\ejecutar.bat" -ForegroundColor Green
