@@ -73,7 +73,25 @@ foreach ($dep in $dependencias) {
 }
 
 $cp = ($dependencias -join ";")
-$fuentes = Get-ChildItem $src -Recurse -Filter *.java | Select-Object -ExpandProperty FullName
+
+# Copia el codigo y genera el codigo de los formularios .form (el JAR debe
+# funcionar fuera de IntelliJ, donde no hay inyeccion del GUI Designer).
+$codigoCopia = Join-Path $build "src"
+$generados = Join-Path $build "generated-sources"
+Copy-Item $src $codigoCopia -Recurse -Force
+
+$python = Get-Command python -ErrorAction SilentlyContinue
+if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
+if (-not $python) { throw "Se necesita Python para compilar los formularios .form." }
+
+& $python.Source (Join-Path $raiz "tools\form2java.py") $raiz $generados
+if ($LASTEXITCODE -ne 0) { throw "No se pudieron generar los formularios." }
+
+& $python.Source (Join-Path $raiz "tools\patch_views.py") $codigoCopia (Join-Path $src "Proyecto\universidad\view")
+if ($LASTEXITCODE -ne 0) { throw "No se pudieron parchear las vistas." }
+
+$fuentes = Get-ChildItem $codigoCopia -Recurse -Filter *.java | Select-Object -ExpandProperty FullName
+$fuentes += Get-ChildItem $generados -Recurse -Filter *.java | Select-Object -ExpandProperty FullName
 & $javac -encoding UTF-8 --release 21 -cp $cp -d (Join-Path $build "classes") $fuentes
 if ($LASTEXITCODE -ne 0) { throw "La compilacion fallo." }
 
