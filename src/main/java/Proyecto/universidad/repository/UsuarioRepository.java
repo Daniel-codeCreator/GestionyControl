@@ -1,6 +1,7 @@
 package Proyecto.universidad.repository;
 
 import Proyecto.universidad.Config.connection;
+import Proyecto.universidad.model.Auditoria;
 import Proyecto.universidad.model.Usuario;
 
 import java.sql.CallableStatement;
@@ -9,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -207,5 +209,56 @@ public class UsuarioRepository {
         }
 
         return null;
+    }
+
+    /**
+     * Desactiva lógicamente un usuario (baja lógica: conserva el historial).
+     * Deja la auditoría USUARIO_DESACTIVADO en la misma transacción (RN-18).
+     *
+     * @return true si el usuario estaba ACTIVO y pasó a INACTIVO.
+     */
+    public boolean desactivarUsuario(int intIdUsuario, int intIdUsuarioAccion) {
+        String strSql = "UPDATE Usuario SET Estado = 'INACTIVO' WHERE IdUsuario = ? AND Estado = 'ACTIVO'";
+
+        Connection conn = null;
+        try {
+            conn = connection.getConnection();
+            conn.setAutoCommit(false); // Transacción atómica
+
+            int filas = 0;
+            try (PreparedStatement stmt = conn.prepareStatement(strSql)) {
+                stmt.setInt(1, intIdUsuario);
+                filas = stmt.executeUpdate();
+            }
+
+            if (filas == 0) {
+                conn.rollback();
+                return false;
+            }
+
+            // RN-18: rastro de auditoría de la desactivación
+            new AuditoriaRepository().registrar(conn, new Auditoria(
+                    intIdUsuarioAccion,
+                    LocalDateTime.now(),
+                    "USUARIO_DESACTIVADO",
+                    "Usuario",
+                    intIdUsuario,
+                    "Usuario desactivado (baja lógica), se conserva el historial."
+            ));
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { System.err.println(ex.getMessage()); }
+            }
+            System.err.println("Error al desactivar usuario: " + e.getMessage());
+            return false;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ex) { System.err.println(ex.getMessage()); }
+            }
+        }
     }
 }
