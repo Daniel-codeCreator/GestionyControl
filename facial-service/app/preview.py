@@ -39,6 +39,7 @@ class PreviewWindow:
         try:
             cv2.namedWindow(self.title, cv2.WINDOW_NORMAL)
             cv2.resizeWindow(self.title, 960, 540)
+            self._centrar_y_elevar()
             cv2.waitKey(1)
         except cv2.error as exc:
             raise PreviewUnavailableError(
@@ -47,6 +48,40 @@ class PreviewWindow:
             ) from exc
         self.initialized = True
         logger.info("Preview initialized title=%s", self.title)
+
+    def _centrar_y_elevar(self) -> None:
+        """Centra la ventana de la cámara en la pantalla y la trae al frente.
+
+        Sin esto la ventana de OpenCV aparece en una posicion arbitraria y
+        puede quedar detrás de la ventana de la aplicación Java.
+        """
+        try:
+            import ctypes
+
+            user32 = ctypes.windll.user32
+            try:
+                user32.SetProcessDPIAware()
+            except Exception:
+                pass
+
+            ancho_pantalla = user32.GetSystemMetrics(0)
+            alto_pantalla = user32.GetSystemMetrics(1)
+
+            x = max(0, (ancho_pantalla - 960) // 2)
+            y = max(0, (alto_pantalla - 540) // 2)
+            cv2.moveWindow(self.title, x, y)
+
+            # Traer la ventana al frente (Windows bloquea el foco a veces).
+            hwnd = user32.FindWindowW(None, self.title)
+            if hwnd:
+                user32.ShowWindow(hwnd, 5)  # SW_SHOW
+                user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002)  # HWND_TOPMOST
+                user32.SetWindowPos(hwnd, -2, 0, 0, 0, 0, 0x0001 | 0x0002)  # HWND_NOTOPMOST
+                user32.SetForegroundWindow(hwnd)
+
+            logger.info("Preview window centered at %sx%s", x, y)
+        except Exception as exc:  # pragma: no cover - depende del sistema
+            logger.warning("No se pudo centrar la ventana de la cámara: %s", exc)
 
     def show(self, frame: np.ndarray, overlays: list[FaceOverlay], lines: list[str]) -> int:
         self._initialize()
