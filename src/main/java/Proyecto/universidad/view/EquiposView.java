@@ -51,7 +51,7 @@ public class EquiposView extends JFrame {
         laboratorioService = new LaboratorioService();
 
         setTitle("Gestión de Equipos");
-        setSize(1500, 1200);
+        setSize(1200, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -62,6 +62,7 @@ public class EquiposView extends JFrame {
         cargarCombos();
         configurarTabla();
         cargarDatosTabla();
+        limpiarFormulario(); // Inicializa con el código autogenerado
 
         if (btnGuardar != null) btnGuardar.addActionListener(e -> guardar());
         if (btnActualizar != null) btnActualizar.addActionListener(e -> actualizar());
@@ -100,8 +101,6 @@ public class EquiposView extends JFrame {
     }
 
     private void configurarTabla() {
-        // Índices de columnas:
-        // 0: ID | 1: Serie | 2: Código | 3: Nombre | 4: Modelo | 5: Estado | 6: Marca | 7: Laboratorio | 8: Tipo
         tableModel = new DefaultTableModel(
                 new String[]{"ID", "Serie", "Código", "Nombre", "Modelo", "Estado", "Marca", "Laboratorio", "Tipo"},
                 0
@@ -136,13 +135,13 @@ public class EquiposView extends JFrame {
 
     private void guardar() {
         try {
-            String codigo = txtCodigo.getText();
-            String nombre = txtNombre.getText();
+            String codigo = txtCodigo.getText().trim();
+            String nombre = txtNombre.getText().trim();
             TipoEquipo tipo = (TipoEquipo) cmbTipoEquipo.getSelectedItem();
             Laboratorio lab = (Laboratorio) cmbLaboratorio.getSelectedItem();
-            String marca = txtMarca.getText();
-            String modelo = txtModelo.getText();
-            String serie = txtSerie.getText();
+            String marca = txtMarca.getText().trim();
+            String modelo = txtModelo.getText().trim();
+            String serie = txtSerie.getText().trim();
 
             Integer idTipo = tipo != null ? tipo.getIdTipoEquipo() : null;
             Integer idLab = lab != null ? lab.getIdLaboratorio() : null;
@@ -202,7 +201,6 @@ public class EquiposView extends JFrame {
             cmbEstado.setSelectedItem(tableModel.getValueAt(fila, 5));
             txtMarca.setText((String) tableModel.getValueAt(fila, 6));
 
-            // Posición 7: Laboratorio
             String nombreLab = (String) tableModel.getValueAt(fila, 7);
             if (cmbLaboratorio != null) {
                 for (int i = 0; i < cmbLaboratorio.getItemCount(); i++) {
@@ -213,7 +211,6 @@ public class EquiposView extends JFrame {
                 }
             }
 
-            // Posición 8: Tipo de Equipo
             String nombreTipo = (String) tableModel.getValueAt(fila, 8);
             if (cmbTipoEquipo != null) {
                 for (int i = 0; i < cmbTipoEquipo.getItemCount(); i++) {
@@ -228,13 +225,37 @@ public class EquiposView extends JFrame {
 
     private void limpiarFormulario() {
         idEquipoSeleccionado = null;
-        if (txtCodigo != null) txtCodigo.setText("");
+        if (txtCodigo != null) {
+            txtCodigo.setText(generarNuevoCodigo());
+            txtCodigo.setEditable(false); // Bloqueado para autogeneración
+        }
         if (txtNombre != null) txtNombre.setText("");
         if (txtMarca != null) txtMarca.setText("");
         if (txtModelo != null) txtModelo.setText("");
         if (txtSerie != null) txtSerie.setText("");
         if (cmbEstado != null) cmbEstado.setSelectedItem(EstadoEquipo.DISPONIBLE);
         if (tblEquipos != null) tblEquipos.clearSelection();
+    }
+
+    private String generarNuevoCodigo() {
+        int total = tblEquipos != null ? tblEquipos.getRowCount() : 0;
+        int siguiente = total + 1;
+
+        // Si existen filas en la tabla, busca el número más alto
+        if (tableModel != null) {
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                String cod = String.valueOf(tableModel.getValueAt(i, 2));
+                if (cod.startsWith("EQP")) {
+                    try {
+                        int num = Integer.parseInt(cod.replace("EQP", "").trim());
+                        if (num >= siguiente) {
+                            siguiente = num + 1;
+                        }
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+        return String.format("EQP%05d", siguiente);
     }
 
     private void generarQR() {
@@ -282,5 +303,4 @@ public class EquiposView extends JFrame {
                     "Éxito", JOptionPane.INFORMATION_MESSAGE);
         }
     }
-
 }

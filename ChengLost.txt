@@ -46,3 +46,11 @@ Proyecto Final Progra 2
 --se hace modulo de Manteniminetos
 --Se hace el servicio del QR
 --Se agrega Servicio de Dashboard en el Menu
+
+2026-10-27
+--Se hace cambio en el modulo conexion donde podemos usar la base de datos de la nube y la local
+--se mejora la pantala de Prestamos/Devoluciones
+--Se Configura tambien el servcio de reconocimiento facial el de python para que agarre la conexion xml donde el archivo .env se modifica
+--Se agrega el servicio de Reporteria
+--se mejora servicio de Equipos para que cree el codigo automaticamente
+--HAY QUE REVISAR BUG DE QR YA QUE LOS PRESTA PERO NO APARECE EN LA PANTALLA

@@ -16,7 +16,6 @@ public class UsuarioRepository {
 
     /**
      * Obtiene la lista completa de usuarios registrados en la base de datos.
-     * Utilizado para poblar combox en vistas como la de Préstamos.
      */
     public List<Usuario> listarTodos() {
         List<Usuario> lista = new ArrayList<>();
@@ -60,15 +59,19 @@ public class UsuarioRepository {
     }
 
     /**
-     * Busca un usuario específico por su NombreUsuario.
+     * Busca un usuario específico por su NombreUsuario sin fallos por espacios o estados.
      */
     public Usuario buscarPorUsuario(String strUsuario) {
+        if (strUsuario == null || strUsuario.isBlank()) {
+            return null;
+        }
+
         String strSql = """
             SELECT
                 IdUsuario, Nombre, Apellido, NombreUsuario,
                 Contrasena, Correo, IdRol, Estado, FechaCreacion
             FROM Usuario
-            WHERE UPPER(NombreUsuario) = UPPER(?) AND UPPER(Estado) = 'ACTIVO'
+            WHERE LOWER(RTRIM(LTRIM(NombreUsuario))) = LOWER(RTRIM(LTRIM(?)))
             """;
 
         try (
@@ -166,6 +169,7 @@ public class UsuarioRepository {
 
         return null;
     }
+
     public Usuario crearUsuarioConSP(String strNombre, String strApellido, String strUsuario,
                                      String strPassword, String strCorreo, int intRol)
     {
@@ -204,5 +208,4 @@ public class UsuarioRepository {
 
         return null;
     }
-
 }
