@@ -181,7 +181,7 @@ public class UsuarioRepository {
         ) {
             stmt.setString(1, strNombre);
             stmt.setString(2, strApellido);
-            stmt.setString(3, strUsuario);
+            stmt.setString(3, strUsuario); // Puede ir la sugerencia o null
             stmt.setString(4, strPassword);
             stmt.setString(5, strCorreo);
             stmt.setInt(6, intRol);
@@ -189,10 +189,13 @@ public class UsuarioRepository {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     Usuario usuario = new Usuario();
-                    usuario.setIdUsuario(rs.getInt("IdUsuario"));
+                    usuario.setIdUsuario(rs.getInt("idUsuario"));
                     usuario.setStrNombre(strNombre);
                     usuario.setStrApellido(strApellido);
-                    usuario.setStrUsuario(strUsuario);
+
+                    // Lee el usuario definitivo asignado por el Stored Procedure
+                    usuario.setStrUsuario(rs.getString("NombreUsuario"));
+
                     usuario.setStrPassword(strPassword);
                     usuario.setStrCorreo(strCorreo);
                     usuario.setIntRol(intRol);
@@ -207,5 +210,23 @@ public class UsuarioRepository {
         }
 
         return null;
+    }
+
+    public void cambiarEstadoUsuario(int idUsuario, String nuevoEstado) {
+        String strSQL = "update usuario set Estado  = ? where IdUsuario = ?";
+
+        try (Connection connect = connection.getConnection();
+            PreparedStatement stmt = connect.prepareStatement(strSQL)) {
+
+            stmt.setString(1, nuevoEstado);
+            stmt.setInt(2, idUsuario);
+
+            int filasAfectadas = stmt.executeUpdate();
+            if (filasAfectadas == 0) {
+                throw new RuntimeException("No se encontró el usuario con ID: " + idUsuario);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cambiar el estado del usuario: " + e.getMessage());
+        }
     }
 }

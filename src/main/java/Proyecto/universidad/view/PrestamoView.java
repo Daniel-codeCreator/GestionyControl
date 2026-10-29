@@ -34,6 +34,7 @@ public class PrestamoView extends JFrame {
     private JTextField txtObsDevolucion;
     private JButton btnProcesarDevolucion;
     private JButton btnEscanearQR;
+    private JButton getBtnCerrar;
     private final QrService qrService = new QrService();
 
     private JButton btnAgregarCarrito;
@@ -61,8 +62,8 @@ public class PrestamoView extends JFrame {
         usuarioService = new UsuarioService();
 
         setTitle("Gestión de Préstamos y Devoluciones - SIGELAB");
-        setSize(1000, 680);
-        setMinimumSize(new java.awt.Dimension(900, 600));
+        setSize(1100, 700);
+        setMinimumSize(new java.awt.Dimension(950, 600));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -83,7 +84,8 @@ public class PrestamoView extends JFrame {
         if (btnCerrar != null) btnCerrar.addActionListener(e -> dispose());
         if (btnAgregarCarrito != null) btnAgregarCarrito.addActionListener(e -> tblCarrito.selectAll());
         if (btnQuitarCarrito != null) btnQuitarCarrito.addActionListener(e -> tblCarrito.clearSelection());
-        if (btnEscanearQR != null) btnEscanearQR.addActionListener(e -> escanearQR());
+        if (btnEscanearQR != null) btnEscanearQR.addActionListener(e -> escanearQRDevolucion());
+        if (btnCerrar != null) btnCerrar.addActionListener(e -> dispose());
 
         if (tblPrestamos != null) {
             tblPrestamos.getSelectionModel().addListSelectionListener(e -> seleccionarFila());
@@ -284,69 +286,45 @@ public class PrestamoView extends JFrame {
         }
     }
 
-    private void escanearQR() {
+    private void escanearQRDevolucion() {
         JFileChooser chooser = new JFileChooser(qrService.carpetaQr());
-        chooser.setDialogTitle("Seleccione la imagen del código QR");
+        chooser.setDialogTitle("Seleccione la imagen del código QR para Devolución");
         chooser.setFileFilter(new FileNameExtensionFilter("Imágenes (PNG, JPG)", "png", "jpg", "jpeg"));
 
         if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
         try {
             Equipo eq = qrService.identificarEquipo(chooser.getSelectedFile());
-            String ficha = construirFicha(eq);
+            String codigoBuscado = eq.getStrCodigo();
 
-            if (eq.getEstado() != EstadoEquipo.DISPONIBLE) {
+            boolean encontrado = false;
+            if (tblPrestamos != null && tableModelPrestamos != null) {
+                for (int i = 0; i < tableModelPrestamos.getRowCount(); i++) {
+                    String codTabla = String.valueOf(tableModelPrestamos.getValueAt(i, 4));
+                    if (codigoBuscado.equalsIgnoreCase(codTabla)) {
+                        tblPrestamos.setRowSelectionInterval(i, i);
+                        tblPrestamos.scrollRectToVisible(tblPrestamos.getCellRect(i, 0, true));
+                        encontrado = true;
+
+                        idPrestamoSeleccionado = (Integer) tableModelPrestamos.getValueAt(i, 0);
+                        idEquipoSeleccionado = (Integer) tableModelPrestamos.getValueAt(i, 1);
+                        break;
+                    }
+                }
+            }
+
+            if (encontrado) {
                 JOptionPane.showMessageDialog(this,
-                        "Equipo identificado, pero NO está disponible: no puede prestarse.\n\n" + ficha,
-                        "QR - Equipo bloqueado", JOptionPane.WARNING_MESSAGE);
-                return;
+                        "Equipo " + codigoBuscado + " localizado en préstamos activos.\nListo para procesar la devolución.",
+                        "QR Identificado", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "El equipo " + codigoBuscado + " no tiene un préstamo ACTIVO registrado actualmente.",
+                        "Atención", JOptionPane.WARNING_MESSAGE);
             }
-
-            int fila = buscarFilaDisponible(eq.getIdEquipo());
-            if (fila < 0) {
-                cargarEquiposDisponibles();
-                fila = buscarFilaDisponible(eq.getIdEquipo());
-            }
-
-            if (fila >= 0) {
-                tblCarrito.addRowSelectionInterval(fila, fila);
-                tblCarrito.scrollRectToVisible(tblCarrito.getCellRect(fila, 0, true));
-            }
-
-            JOptionPane.showMessageDialog(this,
-                    "Equipo identificado y disponible. Se agregó a la selección del préstamo.\n\n" + ficha,
-                    "QR - Equipo disponible", JOptionPane.INFORMATION_MESSAGE);
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Lectura de QR", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private int buscarFilaDisponible(Integer idEquipo) {
-        for (int i = 0; i < tableModelDisponibles.getRowCount(); i++) {
-            if (idEquipo != null && idEquipo.equals(tableModelDisponibles.getValueAt(i, 0))) {
-                return tblCarrito.convertRowIndexToView(i);
-            }
-        }
-        return -1;
-    }
-
-    private String construirFicha(Equipo eq) {
-        String estado = eq.getEstado() == null
-                ? "DESCONOCIDO"
-                : eq.getEstado().name().replace("DANADO", "DAÑADO");
-
-        return "Código: " + texto(eq.getStrCodigo()) + "\n" +
-                "Equipo: " + texto(eq.getStrNombre()) + "\n" +
-                "Tipo: " + texto(eq.getStrNombreTipo()) + "\n" +
-                "Marca: " + texto(eq.getStrMarca()) + "\n" +
-                "Modelo: " + texto(eq.getStrModelo()) + "\n" +
-                "Serie: " + texto(eq.getStrSerie()) + "\n" +
-                "Laboratorio: " + texto(eq.getStrNombreLaboratorio()) + "\n" +
-                "Estado actual: " + estado;
-    }
-
-    private String texto(String valor) {
-        return (valor == null || valor.isBlank()) ? "-" : valor;
     }
 }

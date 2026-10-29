@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug: permite HTTP hacia el PC de desarrollo. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- localhost: celular o emulador con adb reverse (opción recomendada). -->
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <!-- Si usa la IP del PC en la red Wi-Fi en vez de adb reverse, agréguela aquí, p. ej. <domain>192.168.1.50</domain> -->
+    </domain-config>
+</network-security-config>

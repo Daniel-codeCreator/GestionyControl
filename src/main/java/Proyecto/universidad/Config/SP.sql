@@ -36,7 +36,7 @@ begin
 end
 
 insert into Usuario (Nombre, Apellido, NombreUsuario, Contrasena, Correo, IdRol, Estado, FechaCreacion)
-values (@Nombre, @Apellido, @Usuario, @Contrasena, @Correo, @idRol,'Activo', SYSDATETIME())
+values (@Nombre, @Apellido, @Usuario, @Contrasena, @Correo, @idRol,'ACTIVO', SYSDATETIME())
 
 select SCOPE_IDENTITY() as idUsuario
 end
