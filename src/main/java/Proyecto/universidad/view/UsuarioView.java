@@ -80,7 +80,7 @@ public class UsuarioView extends JFrame {
                     "El usuario '" + nombreUsuario + "' ya se encuentra en estado " + estadoActual + ".",
                     "Información", JOptionPane.INFORMATION_MESSAGE);
             return;
-        }
+        }  
 
         int confirmacion = JOptionPane.showConfirmDialog(this,
                 "¿Está seguro de cambiar el estado de '" + nombreUsuario + "' a " + nuevoEstado + "?",
