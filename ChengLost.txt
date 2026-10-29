@@ -54,3 +54,8 @@ Proyecto Final Progra 2
 --Se agrega el servicio de Reporteria
 --se mejora servicio de Equipos para que cree el codigo automaticamente
 --HAY QUE REVISAR BUG DE QR YA QUE LOS PRESTA PERO NO APARECE EN LA PANTALLA
+
+2026-10-28
+--Se corrige del BUG de QR
+--Se hace la funcionalidad para Activar/Desactivar Usuarios
+--Se mejora la interfaz de usuario donde se crea automaticamente el nombre de usuario
