@@ -26,7 +26,8 @@ public class UsuarioService {
         return rolRepository.listarTodos();
     }
 
-    public void registrarUsuario(String nombre, String apellido, String usuario, String password, String correo, Integer idRol) throws Exception {
+    public void registrarUsuario(String nombre, String apellido, String usuario, String password,
+                                 String correo, Integer idRol) throws Exception {
         if (nombre == null || nombre.isBlank()) throw new Exception("El nombre es obligatorio.");
         if (apellido == null || apellido.isBlank()) throw new Exception("El apellido es obligatorio.");
         if (usuario == null || usuario.isBlank()) throw new Exception("El nombre de usuario es obligatorio.");
@@ -52,20 +53,12 @@ public class UsuarioService {
         }
     }
 
-    /**
-     * RN-18: desactiva lógicamente un usuario y deja el rastro de auditoría
-     * USUARIO_DESACTIVADO.
-     */
-    public void desactivarUsuario(Integer intIdUsuario, Integer intIdUsuarioAccion) throws Exception {
-        if (intIdUsuario == null || intIdUsuario <= 0) {
-            throw new Exception("Debe indicar el usuario a desactivar.");
+    public void cambiarEstado(Integer idUsuario, String nuevoEstado) {
+        if (idUsuario == null) {
+            throw new IllegalArgumentException("Debe de seleccionar un usuario.");
         }
-
-        int intAccion = intIdUsuarioAccion != null && intIdUsuarioAccion > 0 ? intIdUsuarioAccion : 1;
-
-        boolean ok = usuarioRepository.desactivarUsuario(intIdUsuario, intAccion);
-        if (!ok) {
-            throw new Exception("No se pudo desactivar el usuario (no existe o ya estaba inactivo).");
+        if (!"ACTIVO".equals(nuevoEstado) && !"INACTIVO".equals(nuevoEstado)) {
+            usuarioRepository.cambiarEstadoUsuario(idUsuario, nuevoEstado.toUpperCase());
         }
     }
 }
