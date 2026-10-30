@@ -1,4 +1,7 @@
 package Proyecto.universidad.enums;
 
-public class RolUsuario {
+public enum RolUsuario {
+    ADMIN,
+    ENCARGADO,
+    DOCENTE
 }

@@ -55,10 +55,20 @@ public class UsuarioService {
 
     public void cambiarEstado(Integer idUsuario, String nuevoEstado) {
         if (idUsuario == null) {
-            throw new IllegalArgumentException("Debe de seleccionar un usuario.");
+            throw new IllegalArgumentException("Debe seleccionar un usuario.");
         }
-        if (!"ACTIVO".equals(nuevoEstado) && !"INACTIVO".equals(nuevoEstado)) {
-            usuarioRepository.cambiarEstadoUsuario(idUsuario, nuevoEstado.toUpperCase());
+
+        if (nuevoEstado == null ||
+                (!"ACTIVO".equalsIgnoreCase(nuevoEstado) &&
+                        !"INACTIVO".equalsIgnoreCase(nuevoEstado))) {
+            throw new IllegalArgumentException(
+                    "El estado debe ser ACTIVO o INACTIVO."
+            );
         }
+
+        usuarioRepository.cambiarEstadoUsuario(
+                idUsuario,
+                nuevoEstado.toUpperCase().trim()
+        );
     }
 }
