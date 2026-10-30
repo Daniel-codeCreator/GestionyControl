@@ -12,7 +12,6 @@ Repositorio: https://github.com/Daniel-codeCreator/GestionyControl
 - Cristian Alejandro Tobías Ramírez	3590-25-4419
 - Esdras Nehemías Uriel Coc Chanchávac 3590-23-2221
 
-> Antes de la entrega final, complete esta sección con los nombres de todos los integrantes del grupo.
 
 ---
 
