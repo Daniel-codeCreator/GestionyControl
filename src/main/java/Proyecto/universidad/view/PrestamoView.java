@@ -7,8 +7,8 @@ import Proyecto.universidad.model.Prestamo;
 import Proyecto.universidad.model.Usuario;
 import Proyecto.universidad.service.EquipoService;
 import Proyecto.universidad.service.PrestamoService;
-import Proyecto.universidad.service.UsuarioService;
 import Proyecto.universidad.service.QrService;
+import Proyecto.universidad.service.UsuarioService;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -33,8 +33,8 @@ public class PrestamoView extends JFrame {
     private JTable tblPrestamos;
     private JTextField txtObsDevolucion;
     private JButton btnProcesarDevolucion;
-    private JButton btnEscanearQR;
-    private JButton getBtnCerrar;
+    private JButton btnEscanearQR;           // pestaña de devoluciones
+    private JButton btnEscanearQRPrestamo;   // pestaña de préstamo
     private final QrService qrService = new QrService();
 
     private JButton btnAgregarCarrito;
@@ -84,8 +84,8 @@ public class PrestamoView extends JFrame {
         if (btnCerrar != null) btnCerrar.addActionListener(e -> dispose());
         if (btnAgregarCarrito != null) btnAgregarCarrito.addActionListener(e -> tblCarrito.selectAll());
         if (btnQuitarCarrito != null) btnQuitarCarrito.addActionListener(e -> tblCarrito.clearSelection());
+        if (btnEscanearQRPrestamo != null) btnEscanearQRPrestamo.addActionListener(e -> escanearQRPrestamo());
         if (btnEscanearQR != null) btnEscanearQR.addActionListener(e -> escanearQRDevolucion());
-        if (btnCerrar != null) btnCerrar.addActionListener(e -> dispose());
 
         if (tblPrestamos != null) {
             tblPrestamos.getSelectionModel().addListSelectionListener(e -> seleccionarFila());
@@ -237,6 +237,8 @@ public class PrestamoView extends JFrame {
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Error de Validacion", JOptionPane.ERROR_MESSAGE);
+            // Si otro usuario tomó un equipo mientras tanto, se refresca la lista
+            cargarEquiposDisponibles();
         }
     }
 
@@ -253,7 +255,8 @@ public class PrestamoView extends JFrame {
 
             prestamoService.procesarDevolucion(idPrestamoSeleccionado, idEquipoSeleccionado, idUsuarioRecibe, condicion, obs);
 
-            JOptionPane.showMessageDialog(this, "Devolucion registrada en condicion '" + condicion + "'.", "Exito", JOptionPane.INFORMATION_MESSAGE);
+            String condicionTexto = "DANADO".equals(condicion) ? "DAÑADO" : condicion;
+            JOptionPane.showMessageDialog(this, "Devolucion registrada en condicion '" + condicionTexto + "'.", "Exito", JOptionPane.INFORMATION_MESSAGE);
             limpiarFormulario();
             cargarEquiposDisponibles();
             cargarDatosTabla();
@@ -267,8 +270,9 @@ public class PrestamoView extends JFrame {
         if (tblPrestamos == null) return;
         int fila = tblPrestamos.getSelectedRow();
         if (fila >= 0) {
-            idPrestamoSeleccionado = (Integer) tableModelPrestamos.getValueAt(fila, 0);
-            idEquipoSeleccionado = (Integer) tableModelPrestamos.getValueAt(fila, 1);
+            int modelo = tblPrestamos.convertRowIndexToModel(fila);
+            idPrestamoSeleccionado = (Integer) tableModelPrestamos.getValueAt(modelo, 0);
+            idEquipoSeleccionado = (Integer) tableModelPrestamos.getValueAt(modelo, 1);
         }
     }
 
@@ -286,9 +290,48 @@ public class PrestamoView extends JFrame {
         }
     }
 
+    // CP-09 y CP-10: el QR solo IDENTIFICA el equipo (RN-19); el préstamo se valida en el Service
+    private void escanearQRPrestamo() {
+        JFileChooser chooser = new JFileChooser(qrService.carpetaQr());
+        chooser.setDialogTitle("Seleccione la imagen del código QR del equipo");
+        chooser.setFileFilter(new FileNameExtensionFilter("Imágenes (PNG, JPG)", "png", "jpg", "jpeg"));
+
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        try {
+            Equipo eq = qrService.identificarEquipo(chooser.getSelectedFile());
+            String ficha = construirFicha(eq);
+
+            if (eq.getEstado() != EstadoEquipo.DISPONIBLE) {
+                JOptionPane.showMessageDialog(this,
+                        "Equipo identificado, pero NO está disponible: no puede prestarse.\n\n" + ficha,
+                        "QR - Equipo bloqueado", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            int fila = buscarFilaDisponible(eq.getIdEquipo());
+            if (fila < 0) {
+                cargarEquiposDisponibles();
+                fila = buscarFilaDisponible(eq.getIdEquipo());
+            }
+
+            if (fila >= 0) {
+                tblCarrito.addRowSelectionInterval(fila, fila);
+                tblCarrito.scrollRectToVisible(tblCarrito.getCellRect(fila, 0, true));
+            }
+
+            JOptionPane.showMessageDialog(this,
+                    "Equipo identificado y disponible. Se agregó a la selección del préstamo.\n\n" + ficha,
+                    "QR - Equipo disponible", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Lectura de QR", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void escanearQRDevolucion() {
         JFileChooser chooser = new JFileChooser(qrService.carpetaQr());
-        chooser.setDialogTitle("Seleccione la imagen del código QR para Devolución");
+        chooser.setDialogTitle("Seleccione la imagen del código QR para la devolución");
         chooser.setFileFilter(new FileNameExtensionFilter("Imágenes (PNG, JPG)", "png", "jpg", "jpeg"));
 
         if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
@@ -302,12 +345,12 @@ public class PrestamoView extends JFrame {
                 for (int i = 0; i < tableModelPrestamos.getRowCount(); i++) {
                     String codTabla = String.valueOf(tableModelPrestamos.getValueAt(i, 4));
                     if (codigoBuscado.equalsIgnoreCase(codTabla)) {
-                        tblPrestamos.setRowSelectionInterval(i, i);
-                        tblPrestamos.scrollRectToVisible(tblPrestamos.getCellRect(i, 0, true));
-                        encontrado = true;
-
+                        int vista = tblPrestamos.convertRowIndexToView(i);
+                        tblPrestamos.setRowSelectionInterval(vista, vista);
+                        tblPrestamos.scrollRectToVisible(tblPrestamos.getCellRect(vista, 0, true));
                         idPrestamoSeleccionado = (Integer) tableModelPrestamos.getValueAt(i, 0);
                         idEquipoSeleccionado = (Integer) tableModelPrestamos.getValueAt(i, 1);
+                        encontrado = true;
                         break;
                     }
                 }
@@ -316,15 +359,43 @@ public class PrestamoView extends JFrame {
             if (encontrado) {
                 JOptionPane.showMessageDialog(this,
                         "Equipo " + codigoBuscado + " localizado en préstamos activos.\nListo para procesar la devolución.",
-                        "QR Identificado", JOptionPane.INFORMATION_MESSAGE);
+                        "QR identificado", JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(this,
-                        "El equipo " + codigoBuscado + " no tiene un préstamo ACTIVO registrado actualmente.",
+                        "El equipo " + codigoBuscado + " no tiene un préstamo ACTIVO.\nEstado actual: " + textoEstado(eq.getEstado()),
                         "Atención", JOptionPane.WARNING_MESSAGE);
             }
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Lectura de QR", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private int buscarFilaDisponible(Integer idEquipo) {
+        for (int i = 0; i < tableModelDisponibles.getRowCount(); i++) {
+            if (idEquipo != null && idEquipo.equals(tableModelDisponibles.getValueAt(i, 0))) {
+                return tblCarrito.convertRowIndexToView(i);
+            }
+        }
+        return -1;
+    }
+
+    private String construirFicha(Equipo eq) {
+        return "Código: " + texto(eq.getStrCodigo()) + "\n" +
+                "Equipo: " + texto(eq.getStrNombre()) + "\n" +
+                "Tipo: " + texto(eq.getStrNombreTipo()) + "\n" +
+                "Marca: " + texto(eq.getStrMarca()) + "\n" +
+                "Modelo: " + texto(eq.getStrModelo()) + "\n" +
+                "Serie: " + texto(eq.getStrSerie()) + "\n" +
+                "Laboratorio: " + texto(eq.getStrNombreLaboratorio()) + "\n" +
+                "Estado actual: " + textoEstado(eq.getEstado());
+    }
+
+    private String textoEstado(EstadoEquipo estado) {
+        return estado == null ? "DESCONOCIDO" : estado.name().replace("DANADO", "DAÑADO");
+    }
+
+    private String texto(String valor) {
+        return (valor == null || valor.isBlank()) ? "-" : valor;
     }
 }

@@ -37,7 +37,7 @@ public class EquipoRepository {
                     try {
                         eq.setEstado(EstadoEquipo.valueOf(estadoStr.toUpperCase()));
                     } catch (IllegalArgumentException e) {
-                        eq.setEstado(EstadoEquipo.DISPONIBLE);
+                        eq.setEstado(null);
                     }
                 }
 

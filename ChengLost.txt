@@ -59,3 +59,6 @@ Proyecto Final Progra 2
 --Se corrige del BUG de QR
 --Se hace la funcionalidad para Activar/Desactivar Usuarios
 --Se mejora la interfaz de usuario donde se crea automaticamente el nombre de usuario
+
+2026-10-29
+--Se mejora la version de pantalla prestamos y devolucion donde cada uno tiene su boton de QR
