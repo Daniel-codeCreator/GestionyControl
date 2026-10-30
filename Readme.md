@@ -4,15 +4,13 @@ Proyecto final de **Programación II** desarrollado como una aplicación de escr
 
 Repositorio: https://github.com/Daniel-codeCreator/GestionyControl
 
-> Este README documenta únicamente la aplicación de escritorio SIGELAB, la base de datos SQL Server, el módulo QR y el servicio local de reconocimiento facial.
-
 ---
 
 ## Integrantes
 
-- **Daniel Boc**
-- **Integrante 2:** _Agregar nombre completo_
-- **Integrante 3:** _Agregar nombre completo_
+- **Edgar Daniel Boc Bran	3590-25-792**
+- Cristian Alejandro Tobías Ramírez	3590-25-4419
+- Esdras Nehemías Uriel Coc Chanchávac 3590-23-2221
 
 > Antes de la entrega final, complete esta sección con los nombres de todos los integrantes del grupo.
 
