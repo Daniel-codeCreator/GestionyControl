@@ -3,6 +3,8 @@ package Proyecto.universidad.view;
 import Proyecto.universidad.model.Dashboard;
 import Proyecto.universidad.model.Usuario;
 import Proyecto.universidad.service.DashboardService;
+import Proyecto.universidad.enums.RolUsuario;
+import Proyecto.universidad.service.Sesion;
 
 import javax.swing.*;
 import java.awt.Color;
@@ -45,6 +47,7 @@ public class Menu extends JFrame {
     // Constructor principal que recibe al usuario que inició sesión
     public Menu(Usuario usuario) {
         this.usuarioLogueado = usuario;
+        Sesion.iniciar(usuario);
 
         setTitle("Sistema de Gestión y Control - Menú Principal");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -87,8 +90,12 @@ public class Menu extends JFrame {
         actualizarDashboard();
     }
 
+
+
     // Consulta la BD y muestra las 8 cantidades del dashboard
     private void actualizarDashboard() {
+
+        aplicarPermisosPorRol();
         try {
             Dashboard r = dashboardService.obtenerResumen();
 
@@ -108,7 +115,10 @@ public class Menu extends JFrame {
                     lblEnMantenimiento, lblDeBaja, lblPrestamosActivos, lblPrestamosVencidos}) {
                 mostrar(lbl, "-", null);
             }
+
+
         }
+
     }
 
     private void mostrar(JLabel etiqueta, String texto, Color color) {
@@ -150,19 +160,39 @@ public class Menu extends JFrame {
         abrirVentana(new MantenimientoView(usuarioLogueado));
     }
 
+    // Ayuda visual: la validación real de permisos está en los Service
+    private void aplicarPermisosPorRol() {
+        boolean admin = Sesion.tieneRol(RolUsuario.ADMIN);
+        boolean operativo = Sesion.tieneRol(RolUsuario.ADMIN, RolUsuario.ENCARGADO);
+
+        mostrar(btnLaboratorios, admin);
+        mostrar(btnTiposEquipo, admin);
+        mostrar(btnCrearUsuario, admin);
+
+        mostrar(btnEquipos, operativo);
+        mostrar(btnPrestamos, operativo);
+        mostrar(btnMantenimiento, operativo);
+
+        // Reportes lo ven los tres roles
+    }
+
+    private void mostrar(JButton boton, boolean visible) {
+        if (boton != null) boton.setVisible(visible);
+    }
+
     private void abrirPantallaCrearUsuario() {
-        // Valida que el usuario exista y que su IdRol sea 1 (ADMIN)
-        if (usuarioLogueado != null && usuarioLogueado.getIntRol() == 1) {
+        if (Sesion.tieneRol(RolUsuario.ADMIN)) {
             abrirVentana(new UsuarioView());
         } else {
             JOptionPane.showMessageDialog(
                     this,
-                    "Acceso Denegado para tu rol.",
+                    "Acceso denegado para tu rol.",
                     "Solo Admin",
                     JOptionPane.WARNING_MESSAGE
             );
         }
     }
+
 
     private void abrirReportes() {
         abrirVentana(new ReportesView());

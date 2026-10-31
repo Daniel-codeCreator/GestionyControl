@@ -2,6 +2,8 @@ package Proyecto.universidad.repository;
 
 import Proyecto.universidad.Config.connection;
 import Proyecto.universidad.model.Usuario;
+import Proyecto.universidad.model.Auditoria;
+import java.time.LocalDateTime;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -227,6 +229,95 @@ public class UsuarioRepository {
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error al cambiar el estado del usuario: " + e.getMessage());
+        }
+    }
+
+    private final AuditoriaRepository auditoriaRepository = new AuditoriaRepository();
+
+    public Usuario buscarPorId(int idUsuario) {
+        String sql = "SELECT IdUsuario, Nombre, Apellido, NombreUsuario, Correo, IdRol, Estado " +
+                "FROM Usuario WHERE IdUsuario = ?";
+
+        try (Connection conn = connection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, idUsuario);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Usuario usuario = new Usuario();
+                    usuario.setIdUsuario(rs.getInt("IdUsuario"));
+                    usuario.setStrNombre(rs.getString("Nombre"));
+                    usuario.setStrApellido(rs.getString("Apellido"));
+                    usuario.setStrUsuario(rs.getString("NombreUsuario"));
+                    usuario.setStrCorreo(rs.getString("Correo"));
+                    usuario.setIntRol(rs.getInt("IdRol"));
+                    usuario.setStrEstado(rs.getString("Estado"));
+                    return usuario;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al buscar usuario: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
+    public int contarAdministradoresActivos() {
+        String sql = "SELECT COUNT(*) FROM Usuario u " +
+                "INNER JOIN Rol r ON u.IdRol = r.IdRol " +
+                "WHERE r.Nombre = 'ADMIN' AND u.Estado = 'ACTIVO'";
+
+        try (Connection conn = connection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            return rs.next() ? rs.getInt(1) : 0;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al contar administradores: " + e.getMessage(), e);
+        }
+    }
+
+    // Cambia el estado y registra la auditoría en la misma transacción (RN-18)
+    public boolean cambiarEstadoConAuditoria(int idUsuario, String nuevoEstado, int idActor,
+                                             String accion, String descripcion) {
+        String sql = "UPDATE Usuario SET Estado = ? WHERE IdUsuario = ?";
+
+        Connection conn = null;
+        try {
+            conn = connection.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, nuevoEstado);
+                stmt.setInt(2, idUsuario);
+                if (stmt.executeUpdate() != 1) {
+                    throw new SQLException("No se encontró el usuario con ID " + idUsuario);
+                }
+            }
+
+            auditoriaRepository.registrar(conn, new Auditoria(
+                    idActor,
+                    LocalDateTime.now(),
+                    accion,
+                    "Usuario",
+                    idUsuario,
+                    descripcion
+            ));
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { System.err.println(ex.getMessage()); }
+            }
+            System.err.println("Error al cambiar el estado del usuario: " + e.getMessage());
+            return false;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ex) { System.err.println(ex.getMessage()); }
+            }
         }
     }
 }

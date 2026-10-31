@@ -62,3 +62,14 @@ Proyecto Final Progra 2
 
 2026-10-29
 --Se mejora la version de pantalla prestamos y devolucion donde cada uno tiene su boton de QR
+
+
+2026-10-30
+--Se agrega el README
+--Se MEJORA LA VISTA DE REPORTERIA
+--SE MEJORA LA VISTA DE LOS ROLES
+--Rol	Puede
+    ADMIN	Todo: laboratorios, tipos de equipo, usuarios, equipos, préstamos, devoluciones, mantenimiento y reportes
+    ENCARGADO	Equipos, préstamos y devoluciones, mantenimiento y reportes (sin catálogos ni usuarios)
+    DOCENTE	Solo reportes (consultas)
+--Se agregan los Manuales Tecnico y Usuario
