@@ -31,6 +31,7 @@ public class Menu extends JFrame {
     private JLabel lblDeBaja;
     private JLabel lblPrestamosActivos;
     private JLabel lblPrestamosVencidos;
+    private JButton btnCerrar;
 
     private static final Color COLOR_ALERTA = new Color(192, 0, 0);
 
@@ -87,10 +88,27 @@ public class Menu extends JFrame {
             btnReportes.addActionListener(e -> abrirReportes());
         }
 
+        if (btnCerrar != null) {
+            btnCerrar.addActionListener(e -> cerrarSesion());
+        }
+
+
         actualizarDashboard();
     }
 
+    private void cerrarSesion() {
+        // 1. Limpiar la sesión global del usuario
+        Sesion.limpiar();
 
+        // 2. Cerrar la ventana del Menú Principal
+        this.dispose();
+
+        // 3. Abrir la pantalla de Login nuevamente
+        SwingUtilities.invokeLater(() -> {
+            Login loginView = new Login();
+            loginView.setVisible(true);
+        });
+    }
 
     // Consulta la BD y muestra las 8 cantidades del dashboard
     private void actualizarDashboard() {

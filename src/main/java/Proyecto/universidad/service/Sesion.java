@@ -16,6 +16,11 @@ public final class Sesion {
         usuarioActual = usuario;
     }
 
+    /** Cierra e invalida la sesión del usuario actual. */
+    public static void limpiar() {
+        usuarioActual = null;
+    }
+
     public static Usuario getUsuario() {
         return usuarioActual;
     }
