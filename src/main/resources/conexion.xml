@@ -13,14 +13,14 @@
     </db>
 
 
-    <!--
-    <db>
-        <host>localhost</host>
-        <port>1433</port>
-        <database>PROYCPROGRA2</database>
-        <user>sa</user>
-        <password>Grupo4Progra1!</password>
-    </db>
-    -->
+<!--    &lt;!&ndash;-->
+<!--    <db>-->
+<!--        <host>localhost</host>-->
+<!--        <port>1433</port>-->
+<!--        <database>PROYCPROGRA2</database>-->
+<!--        <user>sa</user>-->
+<!--        <password>Grupo4Progra1!</password>-->
+<!--    </db>-->
+<!--    &ndash;&gt;-->
 
 </conexion>

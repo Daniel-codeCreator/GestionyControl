@@ -129,11 +129,35 @@ public class PrestamoView extends JFrame {
         return cal.getTime();
     }
 
+//    private void cargarCombos() {
+//        if (cmbUsuario != null) {
+//            cmbUsuario.removeAllItems();
+//            List<Usuario> usuarios = usuarioService.obtenerTodos();
+//            for (Usuario u : usuarios) cmbUsuario.addItem(u);
+//        }
+//    }
+
     private void cargarCombos() {
         if (cmbUsuario != null) {
             cmbUsuario.removeAllItems();
             List<Usuario> usuarios = usuarioService.obtenerTodos();
-            for (Usuario u : usuarios) cmbUsuario.addItem(u);
+            Usuario usuarioASeleccionar = null;
+
+            for (Usuario u : usuarios) {
+                cmbUsuario.addItem(u);
+
+                // Busca la coincidencia con el usuario que inició sesión
+                if (usuarioLogueado != null && u.getIdUsuario() == usuarioLogueado.getIdUsuario()) {
+                    usuarioASeleccionar = u;
+                }
+            }
+
+            // Selecciona automáticamente al usuario activo
+            if (usuarioASeleccionar != null) {
+                cmbUsuario.setSelectedItem(usuarioASeleccionar);
+            } else if (usuarioLogueado != null) {
+                cmbUsuario.setSelectedItem(usuarioLogueado);
+            }
         }
     }
 
@@ -379,6 +403,7 @@ public class PrestamoView extends JFrame {
         }
         return -1;
     }
+
 
     private String construirFicha(Equipo eq) {
         return "Código: " + texto(eq.getStrCodigo()) + "\n" +
